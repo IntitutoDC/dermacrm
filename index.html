@@ -74,11 +74,11 @@
     <div class="px-4 py-4 border-t border-white/10">
       <div class="flex items-center gap-2 mb-2">
         <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white" style="background:#7c3aed;">
-          {{(dados.config.medicoNome||'D').charAt(0).toUpperCase()}}
+          {{(dados.config?.medicoNome||'D').charAt(0).toUpperCase()}}
         </div>
         <div class="min-w-0">
-          <div class="text-white text-xs font-medium truncate">{{dados.config.medicoNome || 'DermaCRM'}}</div>
-          <div class="text-white/40 text-xs truncate">{{dados.config.clinicaNome || ''}}</div>
+          <div class="text-white text-xs font-medium truncate">{{dados.config?.medicoNome || 'DermaCRM'}}</div>
+          <div class="text-white/40 text-xs truncate">{{dados.config?.clinicaNome || ''}}</div>
         </div>
       </div>
       <button @click="exportarDados" class="w-full flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 py-1 transition">
@@ -1357,9 +1357,24 @@ createApp({
     const mostrarNotifs = ref(false);
 
     function carregarDados() {
-      const saved = localStorage.getItem('dermcrm_v2');
-      if (saved) { try { return JSON.parse(saved); } catch(e) {} }
-      return dadosPadrao();
+      const def = dadosPadrao();
+      try {
+        const saved = localStorage.getItem('dermcrm_v3');
+        if (saved) {
+          const p = JSON.parse(saved);
+          return {
+            leads:         Array.isArray(p.leads)         ? p.leads         : def.leads,
+            pacientes:     Array.isArray(p.pacientes)     ? p.pacientes     : def.pacientes,
+            atendimentos:  Array.isArray(p.atendimentos)  ? p.atendimentos  : def.atendimentos,
+            agendamentos:  Array.isArray(p.agendamentos)  ? p.agendamentos  : def.agendamentos,
+            procedimentos: Array.isArray(p.procedimentos) ? p.procedimentos : def.procedimentos,
+            config: (p.config && typeof p.config === 'object')
+              ? { ...def.config, ...p.config }
+              : def.config,
+          };
+        }
+      } catch(e) { /* dados inválidos — usa padrão */ }
+      return def;
     }
     const dados = reactive(carregarDados());
     const procedimentos = computed(() => dados.procedimentos);
@@ -1370,7 +1385,7 @@ createApp({
     const config = computed(() => dados.config);
 
     function salvar() {
-      localStorage.setItem('dermcrm_v2', JSON.stringify(dados));
+      localStorage.setItem('dermcrm_v3', JSON.stringify(dados));
     }
 
     function exportarDados() {
@@ -1685,12 +1700,12 @@ createApp({
     };
 
     // ---- TEMPLATES ----
-    const templateAniversario = (p) => `Olá ${p.nome}! 🎂✨ A equipe da ${dados.config.clinicaNome} deseja um feliz aniversário! Que esse novo ciclo seja repleto de saúde, beleza e conquistas. Com carinho, ${dados.config.medicoNome} 💙`;
+    const templateAniversario = (p) => `Olá ${p.nome}! 🎂✨ A equipe da ${dados.config?.clinicaNome||'clínica'} deseja um feliz aniversário! Que esse novo ciclo seja repleto de saúde, beleza e conquistas. Com carinho, ${dados.config?.medicoNome||''} 💙`;
 
     const templateReativacao = (p) => {
       const ats = atendimentosDoPaciente(p.id);
       const ultProced = ats[0]?.procedimento || 'seu último procedimento';
-      return `Olá ${p.nome}! Tudo bem? 😊 A ${dados.config.medicoNome} está com saudades de você! Desde o seu ${ultProced}, não te vemos por aqui. Que tal agendar uma avaliação gratuita para conversarmos sobre seus resultados? 💜`;
+      return `Olá ${p.nome}! Tudo bem? 😊 A ${dados.config?.medicoNome||'clínica'} está com saudades de você! Desde o seu ${ultProced}, não te vemos por aqui. Que tal agendar uma avaliação gratuita para conversarmos sobre seus resultados? 💜`;
     };
 
     const templatesPaciente = (pac) => {
@@ -2086,6 +2101,7 @@ createApp({
     };
   }
 }).mount('#app');
+
 </script>
 </body>
 </html>
