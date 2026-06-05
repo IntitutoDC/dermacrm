@@ -5,24 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DermaCRM — Clínica de Dermatologia Estética</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/locale/pt-br.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/relativeTime.js"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: { DEFAULT: '#7c3aed', light: '#8b5cf6', dark: '#6d28d9' },
-            pink: { 600: '#db2777' },
-            sidebar: '#1e1b4b'
-          }
-        }
-      }
-    }
-  </script>
+  <script>tailwind.config={theme:{extend:{colors:{brand:{DEFAULT:'#7c3aed'}}}}}</script>
   <style>
     [v-cloak] { display: none; }
     body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
