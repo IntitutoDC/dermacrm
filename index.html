@@ -1464,21 +1464,19 @@ createApp({
     }
 
     async function inicializar() {
-      if (jbKey && jbBin) {
-        try {
-          const remoto = await jbCarregar();
-          Object.assign(dados, remoto);
-          tela.value = 'app';
-          setTimeout(() => { criarGraficoReceita(); criarGraficoFunil(); criarGraficoProced(); }, 300);
-        } catch(e) {
-          // Chave/bin inválidos, pedir reconfiguração
-          tela.value = 'configuracao';
-        }
-      } else {
-        // Tentar localStorage como fallback
-        const saved = localStorage.getItem('dermcrm_v2');
-        if (saved) try { Object.assign(dados, JSON.parse(saved)); } catch(e) {}
-        tela.value = jbKey ? 'configuracao' : 'configuracao';
+      if (!jbKey || !jbBin) {
+        tela.value = 'configuracao';
+        return;
+      }
+      try {
+        const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 12000));
+        const remoto = await Promise.race([jbCarregar(), timeout]);
+        if (remoto && typeof remoto === 'object') Object.assign(dados, remoto);
+        tela.value = 'app';
+        setTimeout(() => { criarGraficoReceita(); criarGraficoFunil(); criarGraficoProced(); }, 300);
+      } catch(e) {
+        console.error('Erro ao inicializar:', e);
+        tela.value = 'configuracao';
       }
     }
 
