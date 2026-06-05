@@ -1,0 +1,2308 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DermaCRM — Clínica de Dermatologia Estética</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/locale/pt-br.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/relativeTime.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { DEFAULT: '#7c3aed', light: '#8b5cf6', dark: '#6d28d9' },
+            pink: { 600: '#db2777' },
+            sidebar: '#1e1b4b'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    [v-cloak] { display: none; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+    .sidebar-item { transition: background 0.15s; border-radius: 8px; }
+    .sidebar-item:hover { background: rgba(255,255,255,0.1); }
+    .sidebar-item.active { background: rgba(255,255,255,0.18); }
+    .kanban-board { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 1rem; }
+    .kanban-col { min-width: 250px; max-width: 250px; flex-shrink: 0; }
+    .timeline-line { position: absolute; left: 11px; top: 24px; bottom: -24px; width: 2px; background: #e2e8f0; }
+    .page-enter { animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .modal-overlay { animation: fadeOverlay 0.15s ease; }
+    @keyframes fadeOverlay { from { opacity: 0; } to { opacity: 1; } }
+    .modal-box { animation: slideUp 0.2s ease; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .toast { animation: slideInRight 0.3s ease; }
+    @keyframes slideInRight { from { opacity: 0; transform: translateX(100px); } to { opacity: 1; transform: translateX(0); } }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .tab-btn { transition: all 0.15s; }
+    .tab-btn.active { border-bottom: 2px solid #7c3aed; color: #7c3aed; }
+    input, select, textarea { outline: none; }
+    input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
+  </style>
+</head>
+<body class="bg-slate-100">
+<div id="app" v-cloak>
+
+  <!-- ===== CARREGANDO ===== -->
+  <div v-if="tela==='carregando'" class="min-h-screen flex items-center justify-center bg-slate-100">
+    <div class="text-center">
+      <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background:#7c3aed;">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+      </div>
+      <div class="text-2xl font-bold text-slate-800">DermaCRM</div>
+      <div class="text-slate-400 text-sm mt-2 flex items-center justify-center gap-2">
+        <svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+        Conectando...
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CONFIGURAÇÃO INICIAL ===== -->
+  <div v-if="tela==='configuracao'" class="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+    <div class="bg-white rounded-2xl shadow-lg w-full max-w-lg p-8">
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style="background:#7c3aed;">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-800">DermaCRM</h1>
+        <p class="text-slate-500 text-sm mt-1">Configure o Firebase para acessar de qualquer dispositivo</p>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">🔑 Cole o <code class="bg-slate-100 px-1 rounded">firebaseConfig</code> do seu projeto</label>
+          <textarea v-model="setupForm.config" rows="7" placeholder="const firebaseConfig = {&#10;  apiKey: &quot;AIzaSy...&quot;,&#10;  authDomain: &quot;...&quot;,&#10;  projectId: &quot;...&quot;,&#10;  ...&#10;};" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono focus:border-violet-400 resize-none transition"></textarea>
+        </div>
+        <div class="border-t border-slate-100 pt-4">
+          <p class="text-xs font-semibold text-slate-500 mb-3">👤 Criar seu acesso</p>
+          <div class="grid grid-cols-2 gap-3">
+            <input v-model="setupForm.email" type="email" placeholder="E-mail" class="border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+            <input v-model="setupForm.senha" type="password" placeholder="Senha (mín. 6 caracteres)" class="border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+          </div>
+        </div>
+        <div v-if="setupForm.erroMsg" class="text-sm text-red-600 bg-red-50 rounded-xl p-3 flex gap-2"><span>⚠️</span><span>{{setupForm.erroMsg}}</span></div>
+        <button @click="configurar" :disabled="setupForm.loading" class="w-full py-3 rounded-xl text-white font-semibold hover:opacity-90 transition disabled:opacity-60" style="background:#7c3aed;">
+          <span v-if="setupForm.loading" class="flex items-center justify-center gap-2"><svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Configurando...</span>
+          <span v-else>Configurar e Entrar →</span>
+        </button>
+        <p class="text-xs text-slate-400 text-center">Seus dados ficam no seu projeto Firebase — privados e seguros</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LOGIN ===== -->
+  <div v-if="tela==='login'" class="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+    <div class="bg-white rounded-2xl shadow-lg w-full max-w-sm p-8">
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style="background:#7c3aed;">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-800">DermaCRM</h1>
+        <p class="text-slate-500 text-sm mt-1">Entre na sua conta</p>
+      </div>
+      <div class="space-y-3">
+        <input v-model="loginForm.email" type="email" placeholder="E-mail" @keyup.enter="fazerLogin" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+        <input v-model="loginForm.senha" type="password" placeholder="Senha" @keyup.enter="fazerLogin" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+        <div v-if="loginForm.erroMsg" class="text-sm text-red-600 bg-red-50 rounded-xl p-3">{{loginForm.erroMsg}}</div>
+        <button @click="fazerLogin" :disabled="loginForm.loading" class="w-full py-3 rounded-xl text-white font-semibold hover:opacity-90 transition disabled:opacity-60" style="background:#7c3aed;">
+          <span v-if="loginForm.loading" class="flex items-center justify-center gap-2"><svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Entrando...</span>
+          <span v-else>Entrar →</span>
+        </button>
+        <button @click="reconfigurar" class="w-full text-xs text-slate-400 hover:text-slate-600 py-1 transition">Reconfigurar Firebase</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CRM APP ===== -->
+  <div v-if="tela==='app'" class="flex h-screen overflow-hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="flex-shrink-0 flex flex-col" style="width:260px;background:#1e1b4b;">
+    <!-- Logo -->
+    <div class="px-6 py-5 border-b border-white/10">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:#7c3aed;">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-white font-bold text-lg leading-tight">DermaCRM</div>
+          <div class="text-white/40 text-xs">Clínica Premium</div>
+        </div>
+      </div>
+    </div>
+    <!-- Nav -->
+    <nav class="flex-1 px-3 py-4 overflow-y-auto">
+      <div class="space-y-1">
+        <button v-for="m in menus" :key="m.id" @click="modulo = m.id"
+          :class="['sidebar-item w-full flex items-center gap-3 px-3 py-2.5 text-left', modulo===m.id ? 'active' : '']">
+          <span class="text-lg leading-none">{{m.icon}}</span>
+          <span :class="['text-sm font-medium', modulo===m.id ? 'text-white' : 'text-white/60']">{{m.label}}</span>
+        </button>
+      </div>
+    </nav>
+    <!-- Footer -->
+    <div class="px-4 py-4 border-t border-white/10">
+      <div class="flex items-center gap-2 mb-2">
+        <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white" style="background:#7c3aed;">
+          {{(authUser?.email||'U').charAt(0).toUpperCase()}}
+        </div>
+        <div class="min-w-0">
+          <div class="text-white text-xs font-medium truncate">{{dados.config.medicoNome || 'Usuário'}}</div>
+          <div class="text-white/40 text-xs truncate">{{authUser?.email || ''}}</div>
+        </div>
+      </div>
+      <button @click="logout" class="w-full flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 py-0.5 transition">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        Sair da conta
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 overflow-y-auto bg-slate-100">
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+      <div>
+        <h1 class="text-xl font-bold text-slate-800">{{menus.find(m=>m.id===modulo)?.label}}</h1>
+        <p class="text-xs text-slate-400 mt-0.5">{{dataHoje}}</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="relative">
+          <button @click="mostrarNotifs = !mostrarNotifs" class="relative p-2 rounded-lg hover:bg-slate-100 transition">
+            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+            <span v-if="alertasCount > 0" class="absolute -top-0.5 -right-0.5 w-4 h-4 text-xs bg-red-500 text-white rounded-full flex items-center justify-center">{{alertasCount}}</span>
+          </button>
+        </div>
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white" style="background:#7c3aed;">DR</div>
+      </div>
+    </header>
+
+    <!-- PAGE CONTENT -->
+    <div class="p-8 page-enter" :key="modulo">
+
+      <!-- ==================== DASHBOARD ==================== -->
+      <template v-if="modulo==='dashboard'">
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-4 gap-6 mb-6">
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center" style="background:#ede9fe;">
+                <svg class="w-5 h-5" style="color:#7c3aed;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </div>
+              <span class="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">+{{kpis.leadsMesVariacao}}%</span>
+            </div>
+            <div class="text-3xl font-bold text-slate-800">{{kpis.leadsMes}}</div>
+            <div class="text-sm text-slate-500 mt-1">Leads este mês</div>
+          </div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center bg-green-50">
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+              </div>
+              <span class="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">{{kpis.taxaConversao}}%</span>
+            </div>
+            <div class="text-3xl font-bold text-slate-800">{{kpis.taxaConversao}}%</div>
+            <div class="text-sm text-slate-500 mt-1">Taxa de Conversão</div>
+          </div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center bg-blue-50">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <span class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">Mês atual</span>
+            </div>
+            <div class="text-3xl font-bold text-slate-800">{{formatCurrency(kpis.receitaMes)}}</div>
+            <div class="text-sm text-slate-500 mt-1">Receita Mensal</div>
+          </div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center" style="background:#fce7f3;">
+                <svg class="w-5 h-5" style="color:#db2777;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+              </div>
+              <span class="text-xs font-medium px-2 py-1 rounded-full" style="color:#db2777;background:#fce7f3;">Premium</span>
+            </div>
+            <div class="text-3xl font-bold text-slate-800">{{formatCurrency(kpis.ticketMedio)}}</div>
+            <div class="text-sm text-slate-500 mt-1">Ticket Médio</div>
+          </div>
+        </div>
+
+        <!-- Alertas do Dia -->
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-6">
+          <h3 class="text-base font-bold text-amber-800 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            Alertas do Dia
+          </h3>
+          <div class="grid grid-cols-3 gap-4">
+            <div class="bg-white rounded-xl p-4 border border-amber-100">
+              <div class="text-2xl font-bold text-amber-700">{{alertas.aniversariantes.length}}</div>
+              <div class="text-sm text-amber-600 font-medium">🎂 Aniversariantes hoje</div>
+              <div v-if="alertas.aniversariantes.length" class="mt-2 space-y-1">
+                <div v-for="p in alertas.aniversariantes" :key="p.id" class="text-xs text-slate-600">• {{p.nome}}</div>
+              </div>
+              <div v-else class="text-xs text-slate-400 mt-1">Nenhum hoje</div>
+            </div>
+            <div class="bg-white rounded-xl p-4 border border-amber-100">
+              <div class="text-2xl font-bold text-red-600">{{alertas.retornosVencidos.length}}</div>
+              <div class="text-sm text-red-500 font-medium">🔔 Retornos vencidos</div>
+              <div v-if="alertas.retornosVencidos.length" class="mt-2 space-y-1">
+                <div v-for="a in alertas.retornosVencidos.slice(0,3)" :key="a.id" class="text-xs text-slate-600">• {{a.pacienteNome}}</div>
+              </div>
+            </div>
+            <div class="bg-white rounded-xl p-4 border border-amber-100">
+              <div class="text-2xl font-bold text-violet-700">{{alertas.consultasHoje.length}}</div>
+              <div class="text-sm font-medium" style="color:#7c3aed;">📅 Consultas hoje</div>
+              <div v-if="alertas.consultasHoje.length" class="mt-2 space-y-1">
+                <div v-for="ag in alertas.consultasHoje" :key="ag.id" class="text-xs text-slate-600">• {{ag.hora}} — {{ag.pacienteNome}}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="grid grid-cols-3 gap-6 mb-6">
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 col-span-1">
+            <h3 class="text-sm font-bold text-slate-700 mb-4">Receita — Últimos 6 Meses</h3>
+            <canvas id="chartReceita" height="160"></canvas>
+          </div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 col-span-1">
+            <h3 class="text-sm font-bold text-slate-700 mb-4">Funil de Leads</h3>
+            <canvas id="chartFunil" height="160"></canvas>
+          </div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 col-span-1">
+            <h3 class="text-sm font-bold text-slate-700 mb-4">Top Procedimentos</h3>
+            <canvas id="chartProced" height="160"></canvas>
+          </div>
+        </div>
+
+        <!-- Próximos Agendamentos -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h3 class="text-sm font-bold text-slate-700 mb-4">Próximos Agendamentos</h3>
+          <div class="space-y-3">
+            <div v-for="ag in proximosAgendamentos" :key="ag.id" class="flex items-center gap-4 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition">
+              <div class="w-12 h-12 rounded-xl flex flex-col items-center justify-center text-white text-xs font-bold" :style="'background:'+tipoAgendCor(ag.tipo)">
+                <span>{{formatDiaMes(ag.data).dia}}</span>
+                <span class="text-xs font-normal opacity-80">{{formatDiaMes(ag.data).mes}}</span>
+              </div>
+              <div class="flex-1">
+                <div class="text-sm font-semibold text-slate-800">{{ag.pacienteNome}}</div>
+                <div class="text-xs text-slate-500">{{ag.hora}} • {{ag.tipo}} • {{ag.procedimento || '—'}}</div>
+              </div>
+              <span :class="['text-xs px-2 py-1 rounded-full font-medium', statusAgendClass(ag.status)]">{{ag.status}}</span>
+            </div>
+            <div v-if="!proximosAgendamentos.length" class="text-sm text-slate-400 text-center py-4">Nenhum agendamento próximo</div>
+          </div>
+        </div>
+      </template>
+
+      <!-- ==================== LEADS ==================== -->
+      <template v-if="modulo==='leads'">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <p class="text-sm text-slate-500">{{leads.length}} leads no pipeline</p>
+          </div>
+          <button @click="abrirModalNovoLead" class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-sm hover:opacity-90 transition" style="background:#7c3aed;">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Novo Lead
+          </button>
+        </div>
+        <!-- Kanban -->
+        <div class="kanban-board">
+          <div v-for="col in kanbanColunas" :key="col.id" class="kanban-col">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <div class="w-2.5 h-2.5 rounded-full" :style="'background:'+col.cor"></div>
+                <span class="text-sm font-bold text-slate-700">{{col.label}}</span>
+              </div>
+              <span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-medium">{{leadsNaColuna(col.id).length}}</span>
+            </div>
+            <div class="space-y-3">
+              <div v-for="lead in leadsNaColuna(col.id)" :key="lead.id"
+                class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition cursor-pointer"
+                @click="abrirLead(lead)">
+                <div class="flex items-start justify-between mb-2">
+                  <div class="font-semibold text-sm text-slate-800 leading-tight">{{lead.nome}}</div>
+                  <span :class="['text-xs font-bold px-1.5 py-0.5 rounded-md', scoreClass(lead.score)]">{{lead.score}}</span>
+                </div>
+                <div class="text-xs text-slate-500 mb-2">{{lead.telefone}}</div>
+                <div class="flex items-center gap-1 mb-2">
+                  <span class="text-xs px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 font-medium">{{lead.origem}}</span>
+                </div>
+                <div class="flex flex-wrap gap-1 mb-3">
+                  <span v-for="int in lead.interesse.slice(0,2)" :key="int" class="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{{int}}</span>
+                  <span v-if="lead.interesse.length > 2" class="text-xs text-slate-400">+{{lead.interesse.length-2}}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-slate-400">{{diasRelativo(lead.dataEntrada)}}</span>
+                  <button class="text-xs text-violet-600 font-medium hover:underline">Ver detalhes</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- ==================== PACIENTES ==================== -->
+      <template v-if="modulo==='pacientes'">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-3">
+            <div class="relative">
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input v-model="buscaPaciente" placeholder="Buscar paciente..." class="pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:border-violet-400 w-64">
+            </div>
+            <div class="flex gap-1 bg-white rounded-xl p-1 border border-slate-200">
+              <button v-for="f in filtrosPacientes" :key="f.id" @click="filtroPaciente=f.id"
+                :class="['px-3 py-1.5 rounded-lg text-xs font-medium transition', filtroPaciente===f.id ? 'text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50']"
+                :style="filtroPaciente===f.id ? 'background:#7c3aed;' : ''">{{f.label}}</button>
+            </div>
+          </div>
+          <button @click="abrirModalNovoPaciente" class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-sm hover:opacity-90 transition" style="background:#7c3aed;">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Nova Paciente
+          </button>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div v-for="pac in pacientesFiltrados" :key="pac.id"
+            class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition cursor-pointer"
+            @click="abrirPaciente(pac)">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0" :style="'background:'+avatarCor(pac.nome)">
+                {{pac.nome.charAt(0)}}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-0.5">
+                  <span class="font-bold text-slate-800 text-sm">{{pac.nome}}</span>
+                  <span v-if="pac.tags.includes('VIP')" class="text-xs px-1.5 py-0.5 rounded-full font-bold text-amber-700 bg-amber-100">VIP</span>
+                  <span v-if="isChurnRisk(pac)" class="text-xs px-1.5 py-0.5 rounded-full font-bold text-red-600 bg-red-100">Risco Churn</span>
+                </div>
+                <div class="text-xs text-slate-500">{{pac.telefone}}</div>
+                <div class="flex items-center gap-3 mt-2">
+                  <span class="text-xs text-slate-400">LTV: <strong class="text-slate-700">{{formatCurrency(calcularLTV(pac.id))}}</strong></span>
+                  <span class="text-xs text-slate-400">Última visita: <strong class="text-slate-700">{{ultimaVisita(pac.id)}}</strong></span>
+                </div>
+              </div>
+              <div class="flex flex-col items-end gap-1">
+                <div class="flex gap-0.5">
+                  <span v-for="n in 5" :key="n" :class="['text-sm', n <= pac.nps ? 'text-amber-400' : 'text-slate-200']">★</span>
+                </div>
+                <span class="text-xs text-slate-400">NPS</span>
+              </div>
+            </div>
+          </div>
+          <div v-if="!pacientesFiltrados.length" class="col-span-2 text-center py-12 text-slate-400">
+            Nenhum paciente encontrado
+          </div>
+        </div>
+      </template>
+
+      <!-- ==================== AGENDA ==================== -->
+      <template v-if="modulo==='agenda'">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-4">
+            <button @click="mesAnterior" class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition">
+              <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <h2 class="text-lg font-bold text-slate-800 min-w-40 text-center">{{mesAtualLabel}}</h2>
+            <button @click="mesProximo" class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition">
+              <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+          <button @click="abrirModalNovoAgend" class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-sm hover:opacity-90 transition" style="background:#7c3aed;">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Novo Agendamento
+          </button>
+        </div>
+        <div class="flex gap-6">
+          <!-- Calendário -->
+          <div class="flex-1 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <!-- Cabeçalho dias da semana -->
+            <div class="grid grid-cols-7 border-b border-slate-100">
+              <div v-for="d in ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']" :key="d" class="text-center text-xs font-semibold text-slate-500 py-3">{{d}}</div>
+            </div>
+            <!-- Grid de dias -->
+            <div class="grid grid-cols-7">
+              <div v-for="(dia, idx) in diasDoMes" :key="idx"
+                @click="dia.data && (diaAgendaSelecionado = dia.data)"
+                :class="[
+                  'min-h-20 p-2 border-b border-r border-slate-100 transition cursor-pointer relative',
+                  !dia.data ? 'bg-slate-50' : 'hover:bg-violet-50',
+                  dia.data && diaAgendaSelecionado === dia.data ? 'bg-violet-50 border-violet-200' : '',
+                  dia.isHoje ? 'bg-blue-50' : ''
+                ]">
+                <div v-if="dia.data" :class="['text-xs font-semibold mb-1 w-6 h-6 flex items-center justify-center rounded-full', dia.isHoje ? 'text-white' : 'text-slate-700']" :style="dia.isHoje ? 'background:#7c3aed;' : ''">
+                  {{dia.numero}}
+                </div>
+                <div class="flex flex-wrap gap-0.5">
+                  <div v-for="ag in agendamentosNoDia(dia.data)" :key="ag.id"
+                    class="w-1.5 h-1.5 rounded-full"
+                    :style="'background:'+tipoAgendCor(ag.tipo)"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Painel lateral do dia selecionado -->
+          <div class="w-80 bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+            <h3 class="font-bold text-slate-800 mb-4 text-sm">
+              {{diaAgendaSelecionado ? formatDataLabel(diaAgendaSelecionado) : 'Selecione um dia'}}
+            </h3>
+            <div class="space-y-3">
+              <div v-for="ag in agendamentosNoDia(diaAgendaSelecionado)" :key="ag.id"
+                class="p-3 rounded-xl border-l-4"
+                :style="'border-color:'+tipoAgendCor(ag.tipo)+';background:'+tipoAgendBg(ag.tipo)">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-sm font-semibold text-slate-800">{{ag.hora}}</span>
+                  <span :class="['text-xs px-1.5 py-0.5 rounded-full font-medium', statusAgendClass(ag.status)]">{{ag.status}}</span>
+                </div>
+                <div class="text-sm text-slate-700 font-medium">{{ag.pacienteNome}}</div>
+                <div class="text-xs text-slate-500 mt-0.5">{{ag.tipo}} {{ag.procedimento ? '• '+ag.procedimento : ''}}</div>
+              </div>
+              <div v-if="!agendamentosNoDia(diaAgendaSelecionado).length && diaAgendaSelecionado" class="text-sm text-slate-400 text-center py-6">
+                Nenhum agendamento neste dia
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- ==================== PROCEDIMENTOS ==================== -->
+      <template v-if="modulo==='procedimentos'">
+        <div class="grid gap-6">
+          <!-- Catálogo -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <h3 class="font-bold text-slate-800">Catálogo de Procedimentos</h3>
+              <button @click="abrirModalNovoProced" class="flex items-center gap-2 px-3 py-2 rounded-xl text-white text-xs font-semibold hover:opacity-90 transition" style="background:#7c3aed;">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Novo Procedimento
+              </button>
+            </div>
+            <table class="w-full">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-6 py-3">Nome</th>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Categoria</th>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Duração</th>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Valor</th>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Retorno (dias)</th>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="p in procedimentos" :key="p.id" class="border-t border-slate-100 hover:bg-slate-50 transition">
+                  <td class="px-6 py-3.5 text-sm font-medium text-slate-800">{{p.nome}}</td>
+                  <td class="px-4 py-3.5"><span class="text-xs px-2 py-1 rounded-full bg-violet-100 text-violet-700 font-medium">{{p.categoria}}</span></td>
+                  <td class="px-4 py-3.5 text-sm text-slate-600">{{p.duracao}} min</td>
+                  <td class="px-4 py-3.5 text-sm font-semibold text-slate-800">{{formatCurrency(p.valor)}}</td>
+                  <td class="px-4 py-3.5 text-sm text-slate-600">{{p.intervaloRetorno || '—'}}</td>
+                  <td class="px-4 py-3.5 flex gap-2">
+                    <button @click="editarProcedimento(p)" class="text-xs text-violet-600 hover:underline font-medium">Editar</button>
+                    <button @click="excluirProcedimento(p.id)" class="text-xs text-red-500 hover:underline font-medium">Excluir</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Atendimentos Recentes -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <h3 class="font-bold text-slate-800">Atendimentos Recentes</h3>
+              <button @click="abrirModalNovoAtend" class="flex items-center gap-2 px-3 py-2 rounded-xl text-white text-xs font-semibold hover:opacity-90 transition" style="background:#7c3aed;">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Novo Atendimento
+              </button>
+            </div>
+            <table class="w-full">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-6 py-3">Data</th>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Paciente</th>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Procedimento</th>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Valor</th>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Próx. Retorno</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="at in atendimentosRecentes" :key="at.id" class="border-t border-slate-100 hover:bg-slate-50 transition">
+                  <td class="px-6 py-3.5 text-sm text-slate-600">{{formatData(at.data)}}</td>
+                  <td class="px-4 py-3.5 text-sm font-medium text-slate-800">{{nomePaciente(at.pacienteId)}}</td>
+                  <td class="px-4 py-3.5 text-sm text-slate-600">{{at.procedimento}}</td>
+                  <td class="px-4 py-3.5 text-sm font-semibold text-slate-800">{{formatCurrency(at.valor)}}</td>
+                  <td class="px-4 py-3.5 text-sm text-slate-600">{{at.dataRetorno ? formatData(at.dataRetorno) : '—'}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </template>
+
+      <!-- ==================== COMUNICAÇÃO ==================== -->
+      <template v-if="modulo==='comunicacao'">
+        <div class="grid grid-cols-2 gap-6">
+          <!-- Aniversariantes -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+              <span class="text-lg">🎂</span>
+              <h3 class="font-bold text-slate-800">Aniversariantes (próximos 30 dias)</h3>
+            </div>
+            <div class="p-4 space-y-3">
+              <div v-for="p in aniversariantesProximos" :key="p.id"
+                :class="['flex items-center justify-between p-3 rounded-xl border transition', p.diasAniversario === 0 ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100']">
+                <div>
+                  <div class="font-semibold text-sm text-slate-800">{{p.nome}}</div>
+                  <div class="text-xs text-slate-500">{{formatDataAniversario(p.dataNascimento)}}
+                    <span :class="['font-medium ml-1', p.diasAniversario === 0 ? 'text-amber-600' : 'text-slate-500']">
+                      {{p.diasAniversario === 0 ? '🎉 Hoje!' : 'em ' + p.diasAniversario + ' dias'}}
+                    </span>
+                  </div>
+                </div>
+                <button @click="copiarMsg(templateAniversario(p))" class="text-xs px-3 py-1.5 rounded-lg border font-medium text-slate-600 hover:bg-slate-100 transition flex items-center gap-1">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                  Copiar WA
+                </button>
+              </div>
+              <div v-if="!aniversariantesProximos.length" class="text-center py-6 text-slate-400 text-sm">Nenhum aniversariante nos próximos 30 dias</div>
+            </div>
+          </div>
+
+          <!-- Retornos Pendentes -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+              <span class="text-lg">🔔</span>
+              <h3 class="font-bold text-slate-800">Retornos Pendentes</h3>
+            </div>
+            <div class="p-4 space-y-3">
+              <div v-for="r in retornosPendentes" :key="r.id"
+                class="flex items-center justify-between p-3 rounded-xl border"
+                :style="retornoStyle(r)">
+                <div>
+                  <div class="font-semibold text-sm text-slate-800">{{r.pacienteNome}}</div>
+                  <div class="text-xs text-slate-500 mt-0.5">{{r.procedimento}} • Retorno: {{formatData(r.dataRetorno)}}</div>
+                </div>
+                <span :class="['text-xs px-2 py-1 rounded-full font-bold', retornoStatusClass(r)]">{{retornoStatusLabel(r)}}</span>
+              </div>
+              <div v-if="!retornosPendentes.length" class="text-center py-6 text-slate-400 text-sm">Nenhum retorno pendente</div>
+            </div>
+          </div>
+
+          <!-- Pacientes Inativos -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+              <span class="text-lg">😴</span>
+              <h3 class="font-bold text-slate-800">Pacientes Inativos (+90 dias)</h3>
+            </div>
+            <div class="p-4 space-y-3">
+              <div v-for="p in pacientesInativos" :key="p.id" class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <div>
+                  <div class="font-semibold text-sm text-slate-800">{{p.nome}}</div>
+                  <div class="text-xs text-slate-500 mt-0.5">Última visita: {{p.ultimaVisitaFormatada}} • <span class="font-medium text-red-500">{{p.diasSemRetorno}} dias sem retorno</span></div>
+                  <div class="text-xs text-slate-500">LTV: {{formatCurrency(p.ltv)}}</div>
+                </div>
+                <button @click="copiarMsg(templateReativacao(p))" class="text-xs px-3 py-1.5 rounded-lg border font-medium text-slate-600 hover:bg-slate-100 transition flex items-center gap-1 flex-shrink-0">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                  Copiar WA
+                </button>
+              </div>
+              <div v-if="!pacientesInativos.length" class="text-center py-6 text-slate-400 text-sm">Nenhum paciente inativo</div>
+            </div>
+          </div>
+
+          <!-- Templates de Mensagem -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+              <span class="text-lg">📱</span>
+              <h3 class="font-bold text-slate-800">Templates de Mensagem</h3>
+            </div>
+            <div class="p-4 space-y-3">
+              <div v-for="tmpl in templatesMsg" :key="tmpl.id" class="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                <div class="flex items-start justify-between mb-2">
+                  <span class="text-sm font-semibold text-slate-800">{{tmpl.nome}}</span>
+                  <button @click="copiarMsg(tmpl.texto)" class="text-xs px-3 py-1 rounded-lg border font-medium text-slate-600 hover:bg-white transition flex-shrink-0 ml-2 flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    Copiar
+                  </button>
+                </div>
+                <p class="text-xs text-slate-500 leading-relaxed">{{tmpl.texto}}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- ==================== FINANCEIRO ==================== -->
+      <template v-if="modulo==='financeiro'">
+        <!-- KPIs -->
+        <div class="grid grid-cols-4 gap-6 mb-6">
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <div class="text-xs text-slate-500 mb-1">Receita Total</div>
+            <div class="text-2xl font-bold text-slate-800">{{formatCurrency(financeiro.receitaTotal)}}</div>
+          </div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <div class="text-xs text-slate-500 mb-1">Receita Mês Atual</div>
+            <div class="text-2xl font-bold text-slate-800">{{formatCurrency(financeiro.receitaMes)}}</div>
+          </div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <div class="text-xs text-slate-500 mb-1">LTV Médio</div>
+            <div class="text-2xl font-bold text-slate-800">{{formatCurrency(financeiro.ltvMedio)}}</div>
+          </div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <div class="text-xs text-slate-500 mb-1">Ticket Médio Geral</div>
+            <div class="text-2xl font-bold text-slate-800">{{formatCurrency(financeiro.ticketMedio)}}</div>
+          </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 class="text-sm font-bold text-slate-700 mb-4">Receita Mensal — Últimos 12 Meses</h3>
+            <canvas id="chartReceitaFin" height="130"></canvas>
+          </div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 class="text-sm font-bold text-slate-700 mb-4">Receita por Categoria</h3>
+            <canvas id="chartCategFin" height="130"></canvas>
+          </div>
+        </div>
+
+        <!-- Top Pacientes e Receita por Procedimento -->
+        <div class="grid grid-cols-2 gap-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100">
+              <h3 class="font-bold text-slate-800">Top 5 Pacientes por LTV</h3>
+            </div>
+            <table class="w-full">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-6 py-3">Paciente</th>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Total Gasto</th>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Proced.</th>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Ticket Médio</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="p in topPacientesLTV" :key="p.id" class="border-t border-slate-100 hover:bg-slate-50">
+                  <td class="px-6 py-3.5 text-sm font-medium text-slate-800">{{p.nome}}</td>
+                  <td class="px-4 py-3.5 text-sm font-bold" style="color:#7c3aed;">{{formatCurrency(p.ltv)}}</td>
+                  <td class="px-4 py-3.5 text-sm text-slate-600">{{p.qtdProced}}</td>
+                  <td class="px-4 py-3.5 text-sm text-slate-600">{{formatCurrency(p.ticketMedio)}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100">
+              <h3 class="font-bold text-slate-800">Receita por Procedimento</h3>
+            </div>
+            <table class="w-full">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-6 py-3">Procedimento</th>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Realizações</th>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Receita</th>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="r in receitaPorProced" :key="r.nome" class="border-t border-slate-100 hover:bg-slate-50">
+                  <td class="px-6 py-3.5 text-sm font-medium text-slate-800">{{r.nome}}</td>
+                  <td class="px-4 py-3.5 text-sm text-slate-600">{{r.qtd}}x</td>
+                  <td class="px-4 py-3.5 text-sm font-bold text-slate-800">{{formatCurrency(r.total)}}</td>
+                  <td class="px-4 py-3.5 text-sm text-slate-500">{{r.pct}}%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </template>
+
+      <!-- ==================== RELATÓRIOS ==================== -->
+      <template v-if="modulo==='relatorios'">
+        <div class="grid grid-cols-2 gap-6">
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 class="text-sm font-bold text-slate-700 mb-5">Funil de Conversão</h3>
+            <div class="space-y-3">
+              <div v-for="etapa in funilConversao" :key="etapa.id" class="flex items-center gap-3">
+                <div class="w-28 text-xs text-slate-600 font-medium text-right">{{etapa.label}}</div>
+                <div class="flex-1 h-8 bg-slate-100 rounded-lg overflow-hidden relative">
+                  <div class="h-full rounded-lg flex items-center pl-3 transition-all" :style="'width:'+etapa.pct+'%;background:'+etapa.cor">
+                    <span class="text-xs font-bold text-white">{{etapa.count}}</span>
+                  </div>
+                </div>
+                <div class="w-14 text-xs text-slate-500 font-medium">{{etapa.pct}}%</div>
+              </div>
+            </div>
+            <div class="mt-5 pt-4 border-t border-slate-100">
+              <div class="text-xs text-slate-500 font-semibold mb-2">Taxa de conversão entre etapas:</div>
+              <div class="flex gap-2 flex-wrap">
+                <span v-for="tx in taxasConversao" :key="tx.label" class="text-xs px-2 py-1 rounded-lg bg-slate-100 text-slate-600 font-medium">{{tx.label}}: {{tx.taxa}}%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 class="text-sm font-bold text-slate-700 mb-4">Aquisição por Canal</h3>
+            <canvas id="chartCanal" height="220"></canvas>
+          </div>
+
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 class="text-sm font-bold text-slate-700 mb-4">Procedimentos Mais Realizados</h3>
+            <canvas id="chartProcedRel" height="200"></canvas>
+          </div>
+
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 class="text-sm font-bold text-slate-700 mb-4">Novos Pacientes por Mês</h3>
+            <canvas id="chartNovos" height="200"></canvas>
+          </div>
+        </div>
+      </template>
+
+      <!-- ==================== CONFIGURAÇÕES ==================== -->
+      <template v-if="modulo==='configuracoes'">
+        <div class="grid grid-cols-2 gap-6">
+          <!-- Dados da Clínica -->
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 class="font-bold text-slate-800 mb-5">Dados da Clínica</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Nome da Clínica</label>
+                <input v-model="config.clinicaNome" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Médico / Especialista</label>
+                <input v-model="config.medicoNome" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1.5">CRM Médico</label>
+                  <input v-model="config.crm" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1.5">Telefone</label>
+                  <input v-model="config.telefone" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Email</label>
+                <input v-model="config.email" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Endereço</label>
+                <input v-model="config.endereco" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+              </div>
+              <button @click="salvarConfig" class="w-full py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition" style="background:#7c3aed;">
+                Salvar Configurações
+              </button>
+            </div>
+          </div>
+
+          <!-- Catálogo de Procedimentos -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <h3 class="font-bold text-slate-800">Catálogo de Procedimentos</h3>
+              <button @click="abrirModalNovoProced" class="flex items-center gap-2 px-3 py-2 rounded-xl text-white text-xs font-semibold hover:opacity-90 transition" style="background:#7c3aed;">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Adicionar
+              </button>
+            </div>
+            <div class="overflow-y-auto" style="max-height:460px;">
+              <table class="w-full">
+                <thead class="bg-slate-50 sticky top-0">
+                  <tr>
+                    <th class="text-left text-xs font-semibold text-slate-500 px-5 py-3">Nome</th>
+                    <th class="text-left text-xs font-semibold text-slate-500 px-3 py-3">Valor</th>
+                    <th class="text-left text-xs font-semibold text-slate-500 px-3 py-3">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="p in procedimentos" :key="p.id" class="border-t border-slate-100 hover:bg-slate-50">
+                    <td class="px-5 py-3 text-sm font-medium text-slate-800">{{p.nome}}</td>
+                    <td class="px-3 py-3 text-sm font-bold" style="color:#7c3aed;">{{formatCurrency(p.valor)}}</td>
+                    <td class="px-3 py-3 flex gap-2">
+                      <button @click="editarProcedimento(p)" class="text-xs text-violet-600 hover:underline font-medium">Editar</button>
+                      <button @click="excluirProcedimento(p.id)" class="text-xs text-red-500 hover:underline font-medium">Excluir</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </template>
+
+    </div><!-- end page content -->
+  </main>
+
+  <!-- ==================== MODAIS ==================== -->
+
+  <!-- Toast notifications -->
+  <div class="fixed top-6 right-6 z-50 space-y-2 pointer-events-none">
+    <div v-for="t in toasts" :key="t.id" :class="['toast pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium text-white max-w-xs', t.tipo === 'sucesso' ? 'bg-green-600' : 'bg-red-500']">
+      <svg v-if="t.tipo==='sucesso'" class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      <svg v-else class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      {{t.msg}}
+    </div>
+  </div>
+
+  <!-- MODAL LEAD -->
+  <div v-if="modalLead.open" class="fixed inset-0 z-40 flex items-center justify-center p-4 modal-overlay" style="background:rgba(0,0,0,0.5);" @click.self="modalLead.open=false">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto modal-box">
+      <div class="flex items-center justify-between p-6 border-b border-slate-100">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800">{{modalLead.dados.nome || 'Novo Lead'}}</h2>
+          <p class="text-xs text-slate-500 mt-0.5" v-if="modalLead.dados.id">Entrada: {{formatData(modalLead.dados.dataEntrada)}}</p>
+        </div>
+        <button @click="modalLead.open=false" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition text-slate-500">✕</button>
+      </div>
+      <div class="p-6">
+        <div class="grid grid-cols-2 gap-4 mb-5">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Nome *</label>
+            <input v-model="modalLead.dados.nome" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition" placeholder="Nome completo">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Telefone</label>
+            <input v-model="modalLead.dados.telefone" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition" placeholder="(11) 99999-9999">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Email</label>
+            <input v-model="modalLead.dados.email" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition" placeholder="email@exemplo.com">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Data de Nascimento</label>
+            <input v-model="modalLead.dados.dataNascimento" type="date" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Origem</label>
+            <select v-model="modalLead.dados.origem" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition bg-white">
+              <option value="">Selecione</option>
+              <option v-for="o in origens" :key="o">{{o}}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Score (1–10)</label>
+            <input v-model.number="modalLead.dados.score" type="number" min="1" max="10" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Interesse (procedimentos)</label>
+            <div class="flex flex-wrap gap-2">
+              <label v-for="p in procedimentos" :key="p.id" class="flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" :value="p.nome" v-model="modalLead.dados.interesse" class="rounded">
+                <span class="text-xs text-slate-700">{{p.nome}}</span>
+              </label>
+            </div>
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Observações</label>
+            <textarea v-model="modalLead.dados.observacoes" rows="2" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition resize-none" placeholder="Observações sobre o lead..."></textarea>
+          </div>
+        </div>
+
+        <!-- Status / etapa atual se editando -->
+        <div v-if="modalLead.dados.id" class="mb-5">
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">Status</label>
+          <div class="flex gap-2 flex-wrap">
+            <button v-for="col in kanbanColunas" :key="col.id" @click="modalLead.dados.status = col.id"
+              :class="['text-xs px-3 py-1.5 rounded-lg font-medium border transition', modalLead.dados.status === col.id ? 'text-white border-transparent' : 'text-slate-600 border-slate-200 hover:bg-slate-50']"
+              :style="modalLead.dados.status === col.id ? 'background:'+col.cor : ''">
+              {{col.label}}
+            </button>
+          </div>
+        </div>
+
+        <!-- Histórico de follow-ups se editando -->
+        <div v-if="modalLead.dados.id" class="mb-5">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-semibold text-slate-600">Histórico de Follow-ups</label>
+            <button @click="modalLead.novoFollowup=true" class="text-xs text-violet-600 font-medium hover:underline">+ Adicionar</button>
+          </div>
+          <div class="space-y-2 mb-2">
+            <div v-for="f in modalLead.dados.historico" :key="f.data+f.texto" class="p-3 rounded-lg bg-slate-50 text-xs text-slate-700">
+              <span class="text-slate-400 font-medium mr-2">{{formatData(f.data)}}</span> {{f.texto}}
+            </div>
+            <div v-if="!modalLead.dados.historico?.length" class="text-xs text-slate-400">Nenhum follow-up registrado</div>
+          </div>
+          <div v-if="modalLead.novoFollowup" class="flex gap-2">
+            <input v-model="modalLead.followupTexto" class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:border-violet-400 transition" placeholder="Descreva o contato...">
+            <button @click="adicionarFollowup" class="px-3 py-2 rounded-xl text-white text-xs font-semibold hover:opacity-90 transition" style="background:#7c3aed;">Salvar</button>
+            <button @click="modalLead.novoFollowup=false" class="px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 transition">Cancelar</button>
+          </div>
+        </div>
+
+        <div class="flex gap-3 flex-wrap">
+          <button @click="salvarLead" class="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition" style="background:#7c3aed;">
+            {{modalLead.dados.id ? 'Salvar Alterações' : 'Criar Lead'}}
+          </button>
+          <button v-if="modalLead.dados.id && modalLead.dados.status !== 'perdido'" @click="marcarPerdido" class="px-4 py-2.5 rounded-xl border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition">
+            Marcar como Perdido
+          </button>
+          <button v-if="modalLead.dados.id && modalLead.dados.status === 'convertido'" @click="converterEmPaciente" class="px-4 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition" style="background:#db2777;">
+            Converter em Paciente
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PACIENTE -->
+  <div v-if="modalPaciente.open" class="fixed inset-0 z-40 flex items-center justify-center p-4 modal-overlay" style="background:rgba(0,0,0,0.5);" @click.self="modalPaciente.open=false">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col modal-box">
+      <!-- Header -->
+      <div class="flex items-center justify-between p-6 border-b border-slate-100 flex-shrink-0">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold" :style="'background:'+avatarCor(modalPaciente.dados.nome||'P')">
+            {{(modalPaciente.dados.nome||'?').charAt(0)}}
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">{{modalPaciente.dados.nome || 'Nova Paciente'}}</h2>
+            <div class="flex items-center gap-2 mt-0.5">
+              <span v-for="tag in (modalPaciente.dados.tags||[])" :key="tag" :class="['text-xs px-2 py-0.5 rounded-full font-bold', tag==='VIP' ? 'text-amber-700 bg-amber-100' : 'text-slate-600 bg-slate-100']">{{tag}}</span>
+              <span v-if="modalPaciente.dados.id" class="text-xs text-slate-500">LTV: <strong class="text-violet-700">{{formatCurrency(calcularLTV(modalPaciente.dados.id))}}</strong></span>
+            </div>
+          </div>
+        </div>
+        <button @click="modalPaciente.open=false" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition text-slate-500">✕</button>
+      </div>
+      <!-- Abas -->
+      <div class="flex border-b border-slate-100 flex-shrink-0 px-6">
+        <button v-for="aba in abasPaciente" :key="aba.id" @click="modalPaciente.aba=aba.id"
+          :class="['tab-btn px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 transition mr-1', modalPaciente.aba===aba.id ? 'active' : '']">
+          {{aba.label}}
+        </button>
+      </div>
+      <!-- Conteúdo das Abas -->
+      <div class="flex-1 overflow-y-auto p-6">
+
+        <!-- Aba: Dados Pessoais -->
+        <div v-if="modalPaciente.aba==='dados'" class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Nome Completo *</label>
+              <input v-model="modalPaciente.dados.nome" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Telefone</label>
+              <input v-model="modalPaciente.dados.telefone" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Email</label>
+              <input v-model="modalPaciente.dados.email" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">CPF</label>
+              <input v-model="modalPaciente.dados.cpf" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition" placeholder="000.000.000-00">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Data de Nascimento</label>
+              <input v-model="modalPaciente.dados.dataNascimento" type="date" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Fototipo Fitzpatrick</label>
+              <select v-model="modalPaciente.dados.fototipo" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 bg-white transition">
+                <option v-for="f in ['I','II','III','IV','V','VI']" :key="f" :value="f">Tipo {{f}}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Alergias</label>
+              <input v-model="modalPaciente.dados.alergias" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition" placeholder="Nenhuma">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Contraindicações</label>
+              <input v-model="modalPaciente.dados.contraIndicacoes" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Indicado(a) por</label>
+              <input v-model="modalPaciente.dados.indicadoPor" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition" placeholder="Nome do paciente">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Tags</label>
+              <div class="flex gap-2">
+                <label v-for="tag in ['VIP','Regular','Novo']" :key="tag" class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" :value="tag" v-model="modalPaciente.dados.tags" class="rounded">
+                  <span class="text-xs text-slate-700">{{tag}}</span>
+                </label>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">NPS (1–5 estrelas)</label>
+              <div class="flex gap-1">
+                <button v-for="n in 5" :key="n" @click="modalPaciente.dados.nps = n" :class="['text-2xl transition', n <= (modalPaciente.dados.nps||0) ? 'text-amber-400' : 'text-slate-300']">★</button>
+              </div>
+            </div>
+            <div class="col-span-2">
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Observações</label>
+              <textarea v-model="modalPaciente.dados.observacoes" rows="3" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition resize-none"></textarea>
+            </div>
+          </div>
+          <button @click="salvarPaciente" class="w-full py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition" style="background:#7c3aed;">
+            {{modalPaciente.dados.id ? 'Salvar Alterações' : 'Cadastrar Paciente'}}
+          </button>
+        </div>
+
+        <!-- Aba: Histórico de Procedimentos -->
+        <div v-if="modalPaciente.aba==='historico'">
+          <div class="flex items-center justify-between mb-5">
+            <div class="text-sm text-slate-600">LTV Total: <strong class="text-xl font-bold" style="color:#7c3aed;">{{formatCurrency(calcularLTV(modalPaciente.dados.id))}}</strong></div>
+            <button @click="abrirModalNovoAtend(modalPaciente.dados.id)" class="flex items-center gap-2 px-3 py-2 rounded-xl text-white text-xs font-semibold hover:opacity-90 transition" style="background:#7c3aed;">
+              + Novo Atendimento
+            </button>
+          </div>
+          <table class="w-full">
+            <thead class="bg-slate-50 rounded-xl">
+              <tr>
+                <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Data</th>
+                <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Procedimento</th>
+                <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Valor</th>
+                <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Próx. Retorno</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="at in atendimentosDoPaciente(modalPaciente.dados.id)" :key="at.id" class="border-t border-slate-100 hover:bg-slate-50">
+                <td class="px-4 py-3 text-sm text-slate-600">{{formatData(at.data)}}</td>
+                <td class="px-4 py-3 text-sm font-medium text-slate-800">{{at.procedimento}}</td>
+                <td class="px-4 py-3 text-sm font-bold" style="color:#7c3aed;">{{formatCurrency(at.valor)}}</td>
+                <td class="px-4 py-3 text-sm text-slate-600">{{at.dataRetorno ? formatData(at.dataRetorno) : '—'}}</td>
+              </tr>
+              <tr v-if="!atendimentosDoPaciente(modalPaciente.dados.id).length">
+                <td colspan="4" class="px-4 py-8 text-center text-sm text-slate-400">Nenhum atendimento registrado</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Aba: Jornada -->
+        <div v-if="modalPaciente.aba==='jornada'">
+          <div class="relative pl-8 space-y-6">
+            <div v-for="(ev, idx) in jornadaPaciente(modalPaciente.dados.id)" :key="idx" class="relative">
+              <div v-if="idx < jornadaPaciente(modalPaciente.dados.id).length - 1" class="absolute left-[-21px] top-6 bottom-[-24px] w-0.5 bg-slate-200"></div>
+              <div class="absolute left-[-28px] top-1 w-4 h-4 rounded-full border-2 border-white shadow flex items-center justify-center" :style="'background:'+ev.cor">
+              </div>
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-sm font-semibold text-slate-800">{{ev.titulo}}</span>
+                  <span class="text-xs text-slate-400">{{formatData(ev.data)}}</span>
+                </div>
+                <p class="text-xs text-slate-500">{{ev.descricao}}</p>
+              </div>
+            </div>
+            <div v-if="!jornadaPaciente(modalPaciente.dados.id).length" class="text-center py-8 text-slate-400 text-sm">Nenhum evento na jornada</div>
+          </div>
+        </div>
+
+        <!-- Aba: Financeiro -->
+        <div v-if="modalPaciente.aba==='financeiro'">
+          <div class="grid grid-cols-3 gap-4 mb-6">
+            <div class="bg-violet-50 rounded-xl p-4 text-center">
+              <div class="text-2xl font-bold" style="color:#7c3aed;">{{formatCurrency(calcularLTV(modalPaciente.dados.id))}}</div>
+              <div class="text-xs text-slate-500 mt-1">LTV Total</div>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-4 text-center">
+              <div class="text-2xl font-bold text-slate-800">{{formatCurrency(ticketMedioPaciente(modalPaciente.dados.id))}}</div>
+              <div class="text-xs text-slate-500 mt-1">Ticket Médio</div>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-4 text-center">
+              <div class="text-2xl font-bold text-slate-800">{{atendimentosDoPaciente(modalPaciente.dados.id).length}}</div>
+              <div class="text-xs text-slate-500 mt-1">Procedimentos</div>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <div v-for="at in atendimentosDoPaciente(modalPaciente.dados.id)" :key="at.id" class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <div>
+                <div class="text-sm font-medium text-slate-800">{{at.procedimento}}</div>
+                <div class="text-xs text-slate-400">{{formatData(at.data)}}</div>
+              </div>
+              <div class="text-sm font-bold" style="color:#7c3aed;">{{formatCurrency(at.valor)}}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Aba: Comunicação -->
+        <div v-if="modalPaciente.aba==='comunicacao'">
+          <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="bg-amber-50 rounded-xl p-4 border border-amber-100">
+              <div class="text-sm font-semibold text-amber-800 mb-1">🎂 Aniversário</div>
+              <div class="text-xs text-amber-600">{{aniversarioInfo(modalPaciente.dados.dataNascimento)}}</div>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+              <div class="text-sm font-semibold text-slate-700 mb-1">🔔 Retornos Pendentes</div>
+              <div class="text-xs text-slate-500">{{retornosPaciente(modalPaciente.dados.id)}}</div>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <div class="text-xs font-semibold text-slate-600 mb-2">Templates Prontos para WhatsApp:</div>
+            <div v-for="tmpl in templatesPaciente(modalPaciente.dados)" :key="tmpl.nome" class="p-4 rounded-xl bg-slate-50 border border-slate-100">
+              <div class="flex items-start justify-between mb-2">
+                <span class="text-sm font-semibold text-slate-800">{{tmpl.nome}}</span>
+                <button @click="copiarMsg(tmpl.texto)" class="text-xs px-3 py-1 rounded-lg border font-medium text-slate-600 hover:bg-white transition ml-2 flex-shrink-0">Copiar</button>
+              </div>
+              <p class="text-xs text-slate-500 leading-relaxed">{{tmpl.texto}}</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL AGENDAMENTO -->
+  <div v-if="modalAgend.open" class="fixed inset-0 z-40 flex items-center justify-center p-4 modal-overlay" style="background:rgba(0,0,0,0.5);" @click.self="modalAgend.open=false">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg modal-box">
+      <div class="flex items-center justify-between p-6 border-b border-slate-100">
+        <h2 class="text-lg font-bold text-slate-800">{{modalAgend.dados.id ? 'Editar Agendamento' : 'Novo Agendamento'}}</h2>
+        <button @click="modalAgend.open=false" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition text-slate-500">✕</button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Tipo</label>
+            <select v-model="modalAgend.dados.tipo" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 bg-white transition">
+              <option value="">Selecione</option>
+              <option v-for="t in tiposAgend" :key="t">{{t}}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Status</label>
+            <select v-model="modalAgend.dados.status" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 bg-white transition">
+              <option v-for="s in statusAgend" :key="s">{{s}}</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">Paciente / Lead</label>
+          <select v-model="modalAgend.dados.pacienteId" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 bg-white transition">
+            <option value="">Selecione</option>
+            <optgroup label="Pacientes">
+              <option v-for="p in pacientes" :key="'p'+p.id" :value="'p:'+p.id">{{p.nome}}</option>
+            </optgroup>
+            <optgroup label="Leads">
+              <option v-for="l in leads" :key="'l'+l.id" :value="'l:'+l.id">{{l.nome}} (Lead)</option>
+            </optgroup>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">Procedimento (opcional)</label>
+          <select v-model="modalAgend.dados.procedimento" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 bg-white transition">
+            <option value="">Nenhum</option>
+            <option v-for="p in procedimentos" :key="p.id">{{p.nome}}</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Data</label>
+            <input v-model="modalAgend.dados.data" type="date" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Hora</label>
+            <input v-model="modalAgend.dados.hora" type="time" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">Observações</label>
+          <textarea v-model="modalAgend.dados.observacoes" rows="2" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition resize-none"></textarea>
+        </div>
+        <div class="flex gap-3">
+          <button @click="salvarAgend" class="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition" style="background:#7c3aed;">
+            {{modalAgend.dados.id ? 'Salvar' : 'Criar Agendamento'}}
+          </button>
+          <button v-if="modalAgend.dados.id" @click="excluirAgend" class="px-4 py-2.5 rounded-xl border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition">Excluir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PROCEDIMENTO -->
+  <div v-if="modalProced.open" class="fixed inset-0 z-40 flex items-center justify-center p-4 modal-overlay" style="background:rgba(0,0,0,0.5);" @click.self="modalProced.open=false">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg modal-box">
+      <div class="flex items-center justify-between p-6 border-b border-slate-100">
+        <h2 class="text-lg font-bold text-slate-800">{{modalProced.dados.id ? 'Editar Procedimento' : 'Novo Procedimento'}}</h2>
+        <button @click="modalProced.open=false" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition text-slate-500">✕</button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">Nome do Procedimento *</label>
+          <input v-model="modalProced.dados.nome" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Categoria</label>
+            <input v-model="modalProced.dados.categoria" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition" placeholder="Ex: Toxina, Laser...">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Duração (min)</label>
+            <input v-model.number="modalProced.dados.duracao" type="number" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Valor (R$)</label>
+            <input v-model.number="modalProced.dados.valor" type="number" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Intervalo de Retorno (dias)</label>
+            <input v-model.number="modalProced.dados.intervaloRetorno" type="number" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition" placeholder="Deixe vazio se não há retorno">
+          </div>
+        </div>
+        <button @click="salvarProcedimento" class="w-full py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition" style="background:#7c3aed;">
+          {{modalProced.dados.id ? 'Salvar Alterações' : 'Criar Procedimento'}}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ATENDIMENTO -->
+  <div v-if="modalAtend.open" class="fixed inset-0 z-40 flex items-center justify-center p-4 modal-overlay" style="background:rgba(0,0,0,0.5);" @click.self="modalAtend.open=false">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg modal-box">
+      <div class="flex items-center justify-between p-6 border-b border-slate-100">
+        <h2 class="text-lg font-bold text-slate-800">Registrar Atendimento</h2>
+        <button @click="modalAtend.open=false" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition text-slate-500">✕</button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div v-if="!modalAtend.dados.pacienteId">
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">Paciente</label>
+          <select v-model="modalAtend.dados.pacienteId" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 bg-white transition">
+            <option value="">Selecione</option>
+            <option v-for="p in pacientes" :key="p.id" :value="p.id">{{p.nome}}</option>
+          </select>
+        </div>
+        <div v-else class="flex items-center gap-3 p-3 rounded-xl bg-violet-50 border border-violet-100">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold" :style="'background:'+avatarCor(nomePaciente(modalAtend.dados.pacienteId))">
+            {{nomePaciente(modalAtend.dados.pacienteId).charAt(0)}}
+          </div>
+          <span class="text-sm font-semibold text-violet-800">{{nomePaciente(modalAtend.dados.pacienteId)}}</span>
+          <button v-if="!modalAtend.pacienteFixo" @click="modalAtend.dados.pacienteId=''" class="ml-auto text-xs text-violet-600 hover:underline">Trocar</button>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">Procedimento *</label>
+          <select v-model="modalAtend.dados.procedimentoId" @change="preencherValorProced" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 bg-white transition">
+            <option value="">Selecione</option>
+            <option v-for="p in procedimentos" :key="p.id" :value="p.id">{{p.nome}}</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Data *</label>
+            <input v-model="modalAtend.dados.data" type="date" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Valor (R$)</label>
+            <input v-model.number="modalAtend.dados.valor" type="number" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">Observações</label>
+          <textarea v-model="modalAtend.dados.observacoes" rows="2" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition resize-none"></textarea>
+        </div>
+        <button @click="salvarAtendimento" class="w-full py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition" style="background:#7c3aed;">
+          Registrar Atendimento
+        </button>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- end CRM App -->
+</div><!-- end #app -->
+<script>
+// Firebase module-level state
+let db = null;
+let auth = null;
+
+const { createApp, ref, computed, reactive, onMounted, watch, nextTick } = Vue;
+
+dayjs.locale('pt-br');
+dayjs.extend(dayjs_plugin_relativeTime);
+
+// ============ DADOS PADRÃO ============
+function dadosPadrao() {
+  const hoje = dayjs();
+  const d = (dias) => hoje.add(dias, 'day').format('YYYY-MM-DD');
+  const dm = (meses) => hoje.subtract(meses, 'month').format('YYYY-MM-DD');
+  const da = (anos) => hoje.subtract(anos, 'year').format('YYYY-MM-DD');
+
+  const procedimentos = [
+    { id: 1, nome: 'Toxina Botulínica', categoria: 'Toxina', duracao: 60, valor: 1800, intervaloRetorno: 120 },
+    { id: 2, nome: 'Preenchimento Labial', categoria: 'Preenchedor', duracao: 60, valor: 2500, intervaloRetorno: 180 },
+    { id: 3, nome: 'Preenchimento Malar', categoria: 'Preenchedor', duracao: 75, valor: 3200, intervaloRetorno: 365 },
+    { id: 4, nome: 'Bioestimulador (Radiesse)', categoria: 'Bioestimulador', duracao: 90, valor: 3800, intervaloRetorno: 90 },
+    { id: 5, nome: 'Skinbooster', categoria: 'Hidratação', duracao: 60, valor: 1500, intervaloRetorno: 90 },
+    { id: 6, nome: 'Laser CO2 Fracionado', categoria: 'Laser', duracao: 90, valor: 4500, intervaloRetorno: 365 },
+    { id: 7, nome: 'Peeling Químico', categoria: 'Peeling', duracao: 45, valor: 800, intervaloRetorno: 30 },
+    { id: 8, nome: 'Fios de PDO', categoria: 'Fios', duracao: 120, valor: 5500, intervaloRetorno: 365 },
+    { id: 9, nome: 'Consulta / Avaliação', categoria: 'Consulta', duracao: 45, valor: 350, intervaloRetorno: null },
+    { id: 10, nome: 'Microagulhamento', categoria: 'Rejuvenescimento', duracao: 60, valor: 1200, intervaloRetorno: 60 },
+  ];
+
+  const leads = [
+    { id: 'L1', nome: 'Isabela Mendes', telefone: '(11) 99876-5432', email: 'isabela@email.com', dataNascimento: '1995-03-15', origem: 'Instagram', interesse: ['Toxina Botulínica', 'Preenchimento Labial'], score: 9, status: 'novo', dataEntrada: d(-2), observacoes: 'Viu post do before/after no Instagram', historico: [] },
+    { id: 'L2', nome: 'Camila Prado', telefone: '(11) 98765-4321', email: 'camila@email.com', dataNascimento: '1988-07-22', origem: 'Indicação', interesse: ['Bioestimulador (Radiesse)'], score: 9, status: 'contato', dataEntrada: d(-5), observacoes: 'Indicada pela Renata Oliveira', historico: [{ data: d(-3), texto: 'Primeiro contato via WhatsApp. Muito interessada.' }] },
+    { id: 'L3', nome: 'Priscila Vasconcelos', telefone: '(11) 97654-3210', email: 'priscila@email.com', dataNascimento: '1983-11-08', origem: 'Google', interesse: ['Laser CO2 Fracionado'], score: 7, status: 'consultoria', dataEntrada: d(-10), observacoes: 'Pesquisou por laser rejuvenescimento', historico: [{ data: d(-8), texto: 'Ligação realizada, muito receptiva' }, { data: d(-6), texto: 'Consulta agendada para próxima semana' }] },
+    { id: 'L4', nome: 'Tatiana Freire', telefone: '(11) 96543-2109', email: 'tatiana@email.com', dataNascimento: '1991-05-30', origem: 'Facebook', interesse: ['Toxina Botulínica'], score: 6, status: 'proposta', dataEntrada: d(-15), observacoes: 'Comparando preços com outras clínicas', historico: [{ data: d(-12), texto: 'Enviado material da clínica' }, { data: d(-9), texto: 'Consulta realizada. Enviada proposta de R$1.800' }] },
+    { id: 'L5', nome: 'Natasha Borges', telefone: '(11) 95432-1098', email: 'natasha@email.com', dataNascimento: '1986-09-14', origem: 'Indicação', interesse: ['Fios de PDO'], score: 10, status: 'convertido', dataEntrada: d(-20), observacoes: 'Convertida em paciente com sucesso', historico: [{ data: d(-18), texto: 'Consulta realizada. Excelente perfil!' }, { data: d(-15), texto: 'Proposta aceita imediatamente. Agendado procedimento.' }] },
+    { id: 'L6', nome: 'Daniela Rocha', telefone: '(11) 94321-0987', email: 'daniela@email.com', dataNascimento: '1993-01-25', origem: 'Instagram', interesse: ['Peeling Químico'], score: 4, status: 'perdido', dataEntrada: d(-25), observacoes: 'Escolheu outra clínica por preço', historico: [{ data: d(-20), texto: 'Consultou mas achou o valor alto' }, { data: d(-18), texto: 'Confirmou que escolheu outra clínica' }] },
+  ];
+
+  const anivRenata = hoje.add(5, 'day');
+  const pacientes = [
+    { id: 'P1', nome: 'Renata Oliveira', telefone: '(11) 99111-2233', email: 'renata@email.com', dataNascimento: `${hoje.year()-38}-${String(anivRenata.month()+1).padStart(2,'0')}-${String(anivRenata.date()).padStart(2,'0')}`, cpf: '123.456.789-00', fototipo: 'III', alergias: 'Nenhuma', contraIndicacoes: '', indicadoPor: null, tags: ['VIP'], nps: 5, observacoes: 'Paciente desde 2021. Muito fiel. Realiza botox regularmente.', dataCadastro: da(3) },
+    { id: 'P2', nome: 'Amanda Carvalho', telefone: '(11) 98222-3344', email: 'amanda@email.com', dataNascimento: da(42), cpf: '234.567.890-00', fototipo: 'II', alergias: 'Lidocaína tópica', contraIndicacoes: '', indicadoPor: null, tags: ['VIP'], nps: 5, observacoes: 'Muito exigente, adora os resultados.', dataCadastro: da(2) },
+    { id: 'P3', nome: 'Fernanda Lima', telefone: '(11) 97333-4455', email: 'fernanda@email.com', dataNascimento: da(35), cpf: '345.678.901-00', fototipo: 'IV', alergias: '', contraIndicacoes: '', indicadoPor: 'Renata Oliveira', tags: ['Regular'], nps: 4, observacoes: '', dataCadastro: dm(18) },
+    { id: 'P4', nome: 'Gabriela Santos', telefone: '(11) 96444-5566', email: 'gabriela@email.com', dataNascimento: da(29), cpf: '456.789.012-00', fototipo: 'III', alergias: '', contraIndicacoes: '', indicadoPor: null, tags: ['Regular'], nps: 5, observacoes: '', dataCadastro: da(1) },
+    { id: 'P5', nome: 'Patricia Rocha', telefone: '(11) 95555-6677', email: 'patricia@email.com', dataNascimento: da(31), cpf: '567.890.123-00', fototipo: 'II', alergias: '', contraIndicacoes: '', indicadoPor: null, tags: ['Novo'], nps: 4, observacoes: '', dataCadastro: dm(2) },
+    { id: 'P6', nome: 'Mariana Costa', telefone: '(11) 94666-7788', email: 'mariana@email.com', dataNascimento: da(45), cpf: '678.901.234-00', fototipo: 'III', alergias: 'AAS', contraIndicacoes: '', indicadoPor: null, tags: ['Regular'], nps: 3, observacoes: 'Tem dificuldade de retornar. Sensível a preços.', dataCadastro: dm(30) },
+  ];
+
+  let atId = 1;
+  const at = (pacienteId, dataStr, procedNome, valor, retorno = null) => {
+    const proced = procedimentos.find(p => p.nome === procedNome) || { intervaloRetorno: null };
+    const dataRetorno = retorno ? retorno : (proced.intervaloRetorno ? dayjs(dataStr).add(proced.intervaloRetorno, 'day').format('YYYY-MM-DD') : null);
+    return { id: 'A' + (atId++), pacienteId, data: dataStr, procedimento: procedNome, valor, dataRetorno, observacoes: '' };
+  };
+
+  const atendimentos = [
+    // Renata — LTV ~17950
+    at('P1', da(3), 'Consulta / Avaliação', 350),
+    at('P1', dm(30), 'Toxina Botulínica', 1800),
+    at('P1', dm(24), 'Toxina Botulínica', 1800),
+    at('P1', dm(18), 'Preenchimento Labial', 2500),
+    at('P1', dm(12), 'Bioestimulador (Radiesse)', 3800),
+    at('P1', dm(8), 'Toxina Botulínica', 2000),
+    at('P1', dm(6), 'Skinbooster', 1500),
+    at('P1', dm(2), 'Toxina Botulínica', 2200),
+    // Amanda — LTV ~12550, último 5 meses atrás
+    at('P2', dm(24), 'Consulta / Avaliação', 350),
+    at('P2', dm(21), 'Toxina Botulínica', 1800),
+    at('P2', dm(18), 'Preenchimento Malar', 3200),
+    at('P2', dm(12), 'Toxina Botulínica', 2000),
+    at('P2', dm(5), 'Toxina Botulínica', 2000, d(115)),
+    at('P2', dm(5), 'Skinbooster', 1500, d(85)),
+    // Fernanda — LTV ~6300
+    at('P3', dm(18), 'Consulta / Avaliação', 350),
+    at('P3', dm(15), 'Toxina Botulínica', 1800),
+    at('P3', dm(10), 'Peeling Químico', 800),
+    at('P3', dm(6), 'Toxina Botulínica', 1900),
+    at('P3', dm(3), 'Peeling Químico', 800, d(27)),
+    // Gabriela — LTV ~4250
+    at('P4', dm(12), 'Consulta / Avaliação', 350),
+    at('P4', dm(10), 'Microagulhamento', 1200),
+    at('P4', dm(7), 'Skinbooster', 1500),
+    at('P4', dm(4), 'Microagulhamento', 1200),
+    // Patricia — LTV ~2150
+    at('P5', dm(2), 'Consulta / Avaliação', 350),
+    at('P5', dm(1), 'Toxina Botulínica', 1800),
+    // Mariana — LTV ~12450, último 4 meses atrás
+    at('P6', dm(30), 'Consulta / Avaliação', 350),
+    at('P6', dm(27), 'Toxina Botulínica', 1800),
+    at('P6', dm(20), 'Preenchimento Labial', 2500),
+    at('P6', dm(15), 'Toxina Botulínica', 1800, d(105)),
+    at('P6', dm(4), 'Laser CO2 Fracionado', 4500, d(361)),
+  ];
+
+  const agendamentos = [
+    { id: 'AG1', pacienteId: 'p:P5', pacienteNome: 'Patricia Rocha', tipo: 'Retorno', procedimento: 'Toxina Botulínica', data: d(0), hora: '10:00', status: 'Confirmado', observacoes: '' },
+    { id: 'AG2', pacienteId: 'p:P3', pacienteNome: 'Fernanda Lima', tipo: 'Procedimento', procedimento: 'Microagulhamento', data: d(0), hora: '14:30', status: 'Agendado', observacoes: '' },
+    { id: 'AG3', pacienteId: 'p:P4', pacienteNome: 'Gabriela Santos', tipo: 'Procedimento', procedimento: 'Skinbooster', data: d(1), hora: '09:00', status: 'Confirmado', observacoes: '' },
+    { id: 'AG4', pacienteId: 'l:L1', pacienteNome: 'Isabela Mendes (Lead)', tipo: 'Avaliação', procedimento: 'Consulta / Avaliação', data: d(3), hora: '11:00', status: 'Agendado', observacoes: 'Primeira consulta' },
+    { id: 'AG5', pacienteId: 'p:P1', pacienteNome: 'Renata Oliveira', tipo: 'Procedimento', procedimento: 'Toxina Botulínica', data: d(5), hora: '15:00', status: 'Confirmado', observacoes: '' },
+  ];
+
+  const config = {
+    clinicaNome: 'Clínica DermaCRM',
+    medicoNome: 'Dra. Renata Silva',
+    crm: 'CRM 12345-SP',
+    telefone: '(11) 3333-4444',
+    email: 'contato@dermacrm.com.br',
+    endereco: 'Av. Paulista, 1000 — Sala 501, São Paulo/SP'
+  };
+
+  return { procedimentos, leads, pacientes, atendimentos, agendamentos, config };
+}
+
+// ============ VUE APP ============
+createApp({
+  setup() {
+    // ---- STATE ----
+    const modulo = ref('dashboard');
+    const toasts = ref([]);
+    const mostrarNotifs = ref(false);
+    const tela = ref('carregando');
+    const authUser = ref(null);
+    const setupForm = reactive({ config: '', email: '', senha: '', erroMsg: '', loading: false });
+    const loginForm = reactive({ email: '', senha: '', erroMsg: '', loading: false });
+
+    const dados = reactive({
+      leads: [], pacientes: [], atendimentos: [], agendamentos: [],
+      procedimentos: [], config: {
+        clinicaNome: 'Clínica DermaCRM', medicoNome: 'Dra. Renata Silva',
+        crm: 'CRM 12345-SP', telefone: '', email: '', endereco: ''
+      }
+    });
+    const procedimentos = computed(() => dados.procedimentos);
+    const leads = computed(() => dados.leads);
+    const pacientes = computed(() => dados.pacientes);
+    const atendimentos = computed(() => dados.atendimentos);
+    const agendamentos = computed(() => dados.agendamentos);
+    const config = computed(() => dados.config);
+
+    async function salvar() {
+      localStorage.setItem('dermcrm_v2', JSON.stringify(dados));
+      if (!db || !authUser.value) return;
+      await salvarFirestore(authUser.value.uid);
+    }
+
+    async function salvarFirestore(uid) {
+      const base = db.collection('users').doc(uid);
+      try {
+        await Promise.all([
+          base.collection('leads').doc('all').set({ items: dados.leads }),
+          base.collection('pacientes').doc('all').set({ items: dados.pacientes }),
+          base.collection('atendimentos').doc('all').set({ items: dados.atendimentos }),
+          base.collection('agendamentos').doc('all').set({ items: dados.agendamentos }),
+          base.collection('procedimentos').doc('all').set({ items: dados.procedimentos }),
+          base.collection('config').doc('clinica').set(dados.config),
+        ]);
+      } catch(e) {
+        console.error('Firestore sync error:', e);
+        toast('Erro ao sincronizar. Dados salvos localmente.', 'erro');
+      }
+    }
+
+    async function carregarDadosFirestore(uid) {
+      const base = db.collection('users').doc(uid);
+      const [leadsDoc, pacsDoc, atDoc, agDoc, procDoc, configDoc] = await Promise.all([
+        base.collection('leads').doc('all').get(),
+        base.collection('pacientes').doc('all').get(),
+        base.collection('atendimentos').doc('all').get(),
+        base.collection('agendamentos').doc('all').get(),
+        base.collection('procedimentos').doc('all').get(),
+        base.collection('config').doc('clinica').get(),
+      ]);
+      if (!leadsDoc.exists) {
+        // Primeira vez: seed com dados de exemplo
+        const def = dadosPadrao();
+        Object.assign(dados, def);
+        await salvarFirestore(uid);
+        return;
+      }
+      if (leadsDoc.data()?.items) dados.leads = leadsDoc.data().items;
+      if (pacsDoc.data()?.items) dados.pacientes = pacsDoc.data().items;
+      if (atDoc.data()?.items) dados.atendimentos = atDoc.data().items;
+      if (agDoc.data()?.items) dados.agendamentos = agDoc.data().items;
+      if (procDoc.data()?.items?.length) dados.procedimentos = procDoc.data().items;
+      else { const def = dadosPadrao(); dados.procedimentos = def.procedimentos; }
+      if (configDoc.exists) Object.assign(dados.config, configDoc.data());
+    }
+
+    function iniciarSync(uid) {
+      const base = db.collection('users').doc(uid);
+      base.collection('leads').doc('all').onSnapshot(s => { if(s.exists && s.data().items) dados.leads = s.data().items; });
+      base.collection('pacientes').doc('all').onSnapshot(s => { if(s.exists && s.data().items) dados.pacientes = s.data().items; });
+      base.collection('atendimentos').doc('all').onSnapshot(s => { if(s.exists && s.data().items) dados.atendimentos = s.data().items; });
+      base.collection('agendamentos').doc('all').onSnapshot(s => { if(s.exists && s.data().items) dados.agendamentos = s.data().items; });
+      base.collection('procedimentos').doc('all').onSnapshot(s => { if(s.exists && s.data().items?.length) dados.procedimentos = s.data().items; });
+    }
+
+    async function inicializar() {
+      const savedConfig = localStorage.getItem('dermcrm_firebase_config');
+      if (!savedConfig) { tela.value = 'configuracao'; return; }
+      try {
+        const config = JSON.parse(savedConfig);
+        if (!firebase.apps.length) firebase.initializeApp(config);
+        auth = firebase.auth();
+        db = firebase.firestore();
+        auth.onAuthStateChanged(async (user) => {
+          if (user) {
+            authUser.value = user;
+            await carregarDadosFirestore(user.uid);
+            iniciarSync(user.uid);
+            tela.value = 'app';
+            setTimeout(() => { criarGraficoReceita(); criarGraficoFunil(); criarGraficoProced(); }, 300);
+          } else {
+            tela.value = 'login';
+          }
+        });
+      } catch(e) {
+        localStorage.removeItem('dermcrm_firebase_config');
+        tela.value = 'configuracao';
+      }
+    }
+
+    async function configurar() {
+      setupForm.erroMsg = '';
+      setupForm.loading = true;
+      try {
+        const text = setupForm.config;
+        const match = text.match(/\{[\s\S]*apiKey[\s\S]*\}/);
+        if (!match) throw { message: 'firebaseConfig não encontrado. Copie o bloco completo do console Firebase.' };
+        let configStr = match[0]
+          .replace(/([a-zA-Z]\w*)\s*:/g, '"$1":')
+          .replace(/'/g, '"')
+          .replace(/,(\s*[}\]])/g, '$1');
+        const config = JSON.parse(configStr);
+        if (!firebase.apps.length) firebase.initializeApp(config);
+        auth = firebase.auth();
+        db = firebase.firestore();
+        let user;
+        try {
+          const cred = await auth.createUserWithEmailAndPassword(setupForm.email, setupForm.senha);
+          user = cred.user;
+        } catch(e) {
+          if (e.code === 'auth/email-already-in-use') {
+            const cred = await auth.signInWithEmailAndPassword(setupForm.email, setupForm.senha);
+            user = cred.user;
+          } else throw e;
+        }
+        localStorage.setItem('dermcrm_firebase_config', JSON.stringify(config));
+        authUser.value = user;
+        await carregarDadosFirestore(user.uid);
+        iniciarSync(user.uid);
+        tela.value = 'app';
+        setTimeout(() => { criarGraficoReceita(); criarGraficoFunil(); criarGraficoProced(); }, 300);
+      } catch(e) {
+        const msgs = {
+          'auth/invalid-api-key': 'API Key inválida. Verifique o firebaseConfig.',
+          'auth/weak-password': 'Senha fraca — use pelo menos 6 caracteres.',
+          'auth/invalid-email': 'E-mail inválido.',
+          'auth/wrong-password': 'Senha incorreta.',
+          'auth/network-request-failed': 'Sem conexão com internet.',
+          'auth/invalid-credential': 'E-mail ou senha incorretos.',
+        };
+        setupForm.erroMsg = msgs[e.code] || (e.message || 'Erro ao configurar. Verifique o firebaseConfig.');
+      }
+      setupForm.loading = false;
+    }
+
+    async function fazerLogin() {
+      loginForm.erroMsg = '';
+      loginForm.loading = true;
+      try {
+        const cred = await auth.signInWithEmailAndPassword(loginForm.email, loginForm.senha);
+        authUser.value = cred.user;
+        await carregarDadosFirestore(cred.user.uid);
+        iniciarSync(cred.user.uid);
+        tela.value = 'app';
+        setTimeout(() => { criarGraficoReceita(); criarGraficoFunil(); criarGraficoProced(); }, 300);
+      } catch(e) {
+        const msgs = {
+          'auth/wrong-password': 'Senha incorreta.',
+          'auth/user-not-found': 'Usuário não encontrado.',
+          'auth/invalid-email': 'E-mail inválido.',
+          'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos.',
+          'auth/network-request-failed': 'Sem conexão com internet.',
+          'auth/invalid-credential': 'E-mail ou senha incorretos.',
+        };
+        loginForm.erroMsg = msgs[e.code] || 'E-mail ou senha incorretos.';
+      }
+      loginForm.loading = false;
+    }
+
+    async function logout() {
+      if (auth) await auth.signOut();
+      authUser.value = null;
+      loginForm.email = '';
+      loginForm.senha = '';
+      tela.value = 'login';
+    }
+
+    function reconfigurar() {
+      localStorage.removeItem('dermcrm_firebase_config');
+      tela.value = 'configuracao';
+    }
+
+    function toast(msg, tipo = 'sucesso') {
+      const id = Date.now();
+      toasts.value.push({ id, msg, tipo });
+      setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id); }, 3000);
+    }
+
+    // ---- MENUS ----
+    const menus = [
+      { id: 'dashboard', icon: '📊', label: 'Dashboard' },
+      { id: 'leads', icon: '🎯', label: 'Leads' },
+      { id: 'pacientes', icon: '👥', label: 'Pacientes' },
+      { id: 'agenda', icon: '📅', label: 'Agenda' },
+      { id: 'procedimentos', icon: '💉', label: 'Procedimentos' },
+      { id: 'comunicacao', icon: '💬', label: 'Comunicação' },
+      { id: 'financeiro', icon: '💰', label: 'Financeiro' },
+      { id: 'relatorios', icon: '📈', label: 'Relatórios' },
+      { id: 'configuracoes', icon: '⚙️', label: 'Configurações' },
+    ];
+
+    // ---- FORMATADORES ----
+    const formatCurrency = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+    const formatData = d => d ? dayjs(d).format('DD/MM/YYYY') : '—';
+    const formatDataAniversario = d => d ? dayjs(d).format('DD/MM') : '—';
+    const diasRelativo = d => {
+      if (!d) return '';
+      const diff = dayjs().diff(dayjs(d), 'day');
+      if (diff === 0) return 'hoje';
+      if (diff === 1) return 'ontem';
+      return `há ${diff} dias`;
+    };
+    const dataHoje = dayjs().format('dddd, D [de] MMMM [de] YYYY');
+
+    const formatDiaMes = d => {
+      const dt = dayjs(d);
+      return { dia: dt.format('DD'), mes: dt.format('MMM').replace('.','') };
+    };
+
+    const formatDataLabel = d => d ? dayjs(d).format('ddd, DD [de] MMM') : '';
+
+    // ---- HELPER ----
+    const nomePaciente = (id) => {
+      const p = dados.pacientes.find(p => p.id === id);
+      return p ? p.nome : '—';
+    };
+
+    const avatarCor = (nome) => {
+      const cores = ['#7c3aed','#db2777','#059669','#d97706','#2563eb','#dc2626','#0891b2'];
+      let h = 0;
+      for (let c of (nome||'')) h = (h * 31 + c.charCodeAt(0)) % cores.length;
+      return cores[h];
+    };
+
+    const calcularLTV = (pacienteId) => dados.atendimentos.filter(a => a.pacienteId === pacienteId).reduce((s, a) => s + (a.valor||0), 0);
+
+    const ultimaVisita = (pacienteId) => {
+      const ats = dados.atendimentos.filter(a => a.pacienteId === pacienteId).sort((a,b) => b.data.localeCompare(a.data));
+      return ats.length ? formatData(ats[0].data) : 'Nunca';
+    };
+
+    const isChurnRisk = (pac) => {
+      const ats = dados.atendimentos.filter(a => a.pacienteId === pac.id).sort((a,b) => b.data.localeCompare(a.data));
+      if (!ats.length) return false;
+      return dayjs().diff(dayjs(ats[0].data), 'day') > 90;
+    };
+
+    const scoreClass = (s) => {
+      if (s >= 8) return 'bg-green-100 text-green-700';
+      if (s >= 5) return 'bg-amber-100 text-amber-700';
+      return 'bg-red-100 text-red-700';
+    };
+
+    const tipoAgendCor = (tipo) => {
+      const m = { 'Consulta': '#3b82f6', 'Procedimento': '#7c3aed', 'Retorno': '#059669', 'Avaliação': '#f97316' };
+      return m[tipo] || '#94a3b8';
+    };
+
+    const tipoAgendBg = (tipo) => {
+      const m = { 'Consulta': '#eff6ff', 'Procedimento': '#f5f3ff', 'Retorno': '#f0fdf4', 'Avaliação': '#fff7ed' };
+      return m[tipo] || '#f8fafc';
+    };
+
+    const statusAgendClass = (s) => {
+      const m = { 'Agendado': 'bg-slate-100 text-slate-600', 'Confirmado': 'bg-green-100 text-green-700', 'Realizado': 'bg-blue-100 text-blue-700', 'Cancelado': 'bg-red-100 text-red-600' };
+      return m[s] || 'bg-slate-100 text-slate-600';
+    };
+
+    const atendimentosDoPaciente = (id) => dados.atendimentos.filter(a => a.pacienteId === id).sort((a,b) => b.data.localeCompare(a.data));
+
+    const ticketMedioPaciente = (id) => {
+      const ats = atendimentosDoPaciente(id);
+      if (!ats.length) return 0;
+      return calcularLTV(id) / ats.length;
+    };
+
+    const jornadaPaciente = (id) => {
+      if (!id) return [];
+      const pac = dados.pacientes.find(p => p.id === id);
+      const ats = dados.atendimentos.filter(a => a.pacienteId === id).sort((a,b) => a.data.localeCompare(b.data));
+      const eventos = [];
+      if (pac?.dataCadastro) eventos.push({ titulo: 'Paciente Cadastrada', data: pac.dataCadastro, descricao: 'Primeira visita e cadastro na clínica', cor: '#7c3aed' });
+      ats.forEach(a => eventos.push({ titulo: a.procedimento, data: a.data, descricao: `Procedimento realizado — ${formatCurrency(a.valor)}`, cor: '#059669' }));
+      return eventos;
+    };
+
+    const aniversarioInfo = (dataNasc) => {
+      if (!dataNasc) return 'Data não cadastrada';
+      const hoje = dayjs();
+      const aniv = dayjs(dataNasc).year(hoje.year());
+      const diff = aniv.diff(hoje, 'day');
+      if (diff === 0) return '🎉 Aniversário hoje!';
+      if (diff > 0 && diff <= 30) return `Aniversário em ${diff} dias (${formatDataAniversario(dataNasc)})`;
+      if (diff < 0) {
+        const proxAniv = aniv.add(1, 'year');
+        return `Próximo aniversário em ${proxAniv.diff(hoje, 'day')} dias (${formatDataAniversario(dataNasc)})`;
+      }
+      return formatDataAniversario(dataNasc);
+    };
+
+    const retornosPaciente = (id) => {
+      const ats = dados.atendimentos.filter(a => a.pacienteId === id && a.dataRetorno);
+      const venc = ats.filter(a => dayjs(a.dataRetorno).isBefore(dayjs()));
+      if (!venc.length) return 'Nenhum retorno pendente';
+      return `${venc.length} retorno(s) vencido(s)`;
+    };
+
+    // ---- DASHBOARD KPIs ----
+    const kpis = computed(() => {
+      const hoje = dayjs();
+      const inicioMes = hoje.startOf('month');
+      const atsMes = dados.atendimentos.filter(a => dayjs(a.data).isAfter(inicioMes));
+      const receitaMes = atsMes.reduce((s,a) => s+(a.valor||0), 0);
+      const leadsMes = dados.leads.filter(l => dayjs(l.dataEntrada).isAfter(inicioMes)).length;
+      const convertidos = dados.leads.filter(l => l.status === 'convertido').length;
+      const taxaConversao = dados.leads.length ? Math.round(convertidos / dados.leads.length * 100) : 0;
+      const totalAts = dados.atendimentos.length;
+      const totalReceita = dados.atendimentos.reduce((s,a) => s+(a.valor||0), 0);
+      const ticketMedio = totalAts ? Math.round(totalReceita / totalAts) : 0;
+      return { leadsMes, leadsMesVariacao: 15, taxaConversao, receitaMes, ticketMedio };
+    });
+
+    // ---- ALERTAS ----
+    const alertas = computed(() => {
+      const hoje = dayjs();
+      const aniversariantes = dados.pacientes.filter(p => {
+        if (!p.dataNascimento) return false;
+        const dn = dayjs(p.dataNascimento);
+        return dn.date() === hoje.date() && dn.month() === hoje.month();
+      });
+      const retornosVencidos = dados.atendimentos.filter(a => a.dataRetorno && dayjs(a.dataRetorno).isBefore(hoje))
+        .map(a => ({ ...a, pacienteNome: nomePaciente(a.pacienteId) }));
+      const consultasHoje = dados.agendamentos.filter(ag => ag.data === hoje.format('YYYY-MM-DD'));
+      return { aniversariantes, retornosVencidos, consultasHoje };
+    });
+
+    const alertasCount = computed(() => alertas.value.aniversariantes.length + alertas.value.consultasHoje.length);
+
+    const proximosAgendamentos = computed(() => {
+      const hoje = dayjs().format('YYYY-MM-DD');
+      return dados.agendamentos.filter(ag => ag.data >= hoje).sort((a,b) => a.data.localeCompare(b.data) || a.hora.localeCompare(b.hora)).slice(0, 5);
+    });
+
+    // ---- LEADS KANBAN ----
+    const kanbanColunas = [
+      { id: 'novo', label: 'Novo', cor: '#6366f1' },
+      { id: 'contato', label: 'Em Contato', cor: '#3b82f6' },
+      { id: 'consultoria', label: 'Consultoria', cor: '#f59e0b' },
+      { id: 'proposta', label: 'Proposta', cor: '#f97316' },
+      { id: 'convertido', label: 'Convertido', cor: '#10b981' },
+      { id: 'perdido', label: 'Perdido', cor: '#ef4444' },
+    ];
+
+    const origens = ['Instagram', 'Google', 'Indicação', 'Facebook', 'LinkedIn', 'Evento', 'Outros'];
+
+    const leadsNaColuna = (colId) => dados.leads.filter(l => l.status === colId);
+
+    // ---- MODAL LEAD ----
+    const modalLead = reactive({ open: false, dados: {}, novoFollowup: false, followupTexto: '' });
+
+    const abrirModalNovoLead = () => {
+      Object.assign(modalLead, { open: true, dados: { interesse: [], historico: [], status: 'novo', score: 7, origem: '' }, novoFollowup: false, followupTexto: '' });
+    };
+
+    const abrirLead = (lead) => {
+      Object.assign(modalLead, { open: true, dados: JSON.parse(JSON.stringify(lead)), novoFollowup: false, followupTexto: '' });
+    };
+
+    const salvarLead = () => {
+      if (!modalLead.dados.nome) return toast('Nome obrigatório', 'erro');
+      if (modalLead.dados.id) {
+        const idx = dados.leads.findIndex(l => l.id === modalLead.dados.id);
+        if (idx >= 0) dados.leads[idx] = { ...modalLead.dados };
+        toast('Lead atualizado!');
+      } else {
+        dados.leads.push({ ...modalLead.dados, id: 'L' + Date.now(), dataEntrada: dayjs().format('YYYY-MM-DD'), historico: modalLead.dados.historico || [] });
+        toast('Lead criado!');
+      }
+      salvar();
+      modalLead.open = false;
+    };
+
+    const adicionarFollowup = () => {
+      if (!modalLead.followupTexto.trim()) return;
+      if (!modalLead.dados.historico) modalLead.dados.historico = [];
+      modalLead.dados.historico.push({ data: dayjs().format('YYYY-MM-DD'), texto: modalLead.followupTexto.trim() });
+      modalLead.followupTexto = '';
+      modalLead.novoFollowup = false;
+    };
+
+    const marcarPerdido = () => {
+      if (!confirm('Confirmar: marcar este lead como perdido?')) return;
+      modalLead.dados.status = 'perdido';
+      salvarLead();
+    };
+
+    const converterEmPaciente = () => {
+      const lead = modalLead.dados;
+      const novo = { id: 'P' + Date.now(), nome: lead.nome, telefone: lead.telefone, email: lead.email, dataNascimento: lead.dataNascimento || '', cpf: '', fototipo: 'III', alergias: '', contraIndicacoes: '', indicadoPor: null, tags: ['Novo'], nps: 4, observacoes: lead.observacoes || '', dataCadastro: dayjs().format('YYYY-MM-DD') };
+      dados.pacientes.push(novo);
+      salvar();
+      toast(`${lead.nome} convertida em paciente!`);
+      modalLead.open = false;
+      modulo.value = 'pacientes';
+    };
+
+    // ---- PACIENTES ----
+    const buscaPaciente = ref('');
+    const filtroPaciente = ref('todos');
+    const filtrosPacientes = [
+      { id: 'todos', label: 'Todos' },
+      { id: 'VIP', label: 'VIP' },
+      { id: 'Regular', label: 'Regular' },
+      { id: 'Novo', label: 'Novo' },
+      { id: 'churn', label: 'Risco Churn' },
+    ];
+
+    const pacientesFiltrados = computed(() => {
+      let list = dados.pacientes;
+      if (buscaPaciente.value) {
+        const q = buscaPaciente.value.toLowerCase();
+        list = list.filter(p => p.nome.toLowerCase().includes(q) || p.telefone.includes(q));
+      }
+      if (filtroPaciente.value !== 'todos') {
+        if (filtroPaciente.value === 'churn') list = list.filter(p => isChurnRisk(p));
+        else list = list.filter(p => p.tags.includes(filtroPaciente.value));
+      }
+      return list;
+    });
+
+    // ---- MODAL PACIENTE ----
+    const abasPaciente = [
+      { id: 'dados', label: 'Dados Pessoais' },
+      { id: 'historico', label: 'Histórico' },
+      { id: 'jornada', label: 'Jornada' },
+      { id: 'financeiro', label: 'Financeiro' },
+      { id: 'comunicacao', label: 'Comunicação' },
+    ];
+    const modalPaciente = reactive({ open: false, dados: {}, aba: 'dados' });
+
+    const abrirPaciente = (pac) => {
+      Object.assign(modalPaciente, { open: true, dados: JSON.parse(JSON.stringify(pac)), aba: 'dados' });
+    };
+
+    const abrirModalNovoPaciente = () => {
+      Object.assign(modalPaciente, { open: true, dados: { tags: ['Novo'], nps: 4, fototipo: 'III' }, aba: 'dados' });
+    };
+
+    const salvarPaciente = () => {
+      if (!modalPaciente.dados.nome) return toast('Nome obrigatório', 'erro');
+      if (modalPaciente.dados.id) {
+        const idx = dados.pacientes.findIndex(p => p.id === modalPaciente.dados.id);
+        if (idx >= 0) dados.pacientes[idx] = { ...modalPaciente.dados };
+        toast('Paciente atualizada!');
+      } else {
+        dados.pacientes.push({ ...modalPaciente.dados, id: 'P' + Date.now(), dataCadastro: dayjs().format('YYYY-MM-DD') });
+        toast('Paciente cadastrada!');
+      }
+      salvar();
+      modalPaciente.open = false;
+    };
+
+    // ---- TEMPLATES ----
+    const templateAniversario = (p) => `Olá ${p.nome}! 🎂✨ A equipe da ${dados.config.clinicaNome} deseja um feliz aniversário! Que esse novo ciclo seja repleto de saúde, beleza e conquistas. Com carinho, ${dados.config.medicoNome} 💙`;
+
+    const templateReativacao = (p) => {
+      const ats = atendimentosDoPaciente(p.id);
+      const ultProced = ats[0]?.procedimento || 'seu último procedimento';
+      return `Olá ${p.nome}! Tudo bem? 😊 A ${dados.config.medicoNome} está com saudades de você! Desde o seu ${ultProced}, não te vemos por aqui. Que tal agendar uma avaliação gratuita para conversarmos sobre seus resultados? 💜`;
+    };
+
+    const templatesPaciente = (pac) => {
+      const ats = atendimentosDoPaciente(pac.id);
+      const ultProced = ats[0]?.procedimento || '[procedimento]';
+      const meses = ats[0] ? dayjs().diff(dayjs(ats[0].data), 'month') : 0;
+      return [
+        { nome: '💬 Retorno', texto: `Olá ${pac.nome}! Tudo bem? Você completou ${meses || 1} ${meses === 1 ? 'mês' : 'meses'} desde seu último ${ultProced}. Que tal agendar sua reavaliação? 💙` },
+        { nome: '🎂 Aniversário', texto: templateAniversario(pac) },
+        { nome: '✨ Pós-procedimento', texto: `Olá ${pac.nome}! Como você está se sentindo após o ${ultProced}? Lembre-se de seguir as orientações de cuidados. Qualquer dúvida, estou à disposição! 💜` },
+      ];
+    };
+
+    const templatesMsg = [
+      { id: 1, nome: '🎂 Aniversário', texto: 'Olá [Nome]! 🎂✨ A equipe da clínica deseja um feliz aniversário! Que esse novo ciclo seja repleto de saúde, beleza e conquistas. Com carinho! 💙' },
+      { id: 2, nome: '🔔 Lembrete de Retorno', texto: 'Olá [Nome]! Tudo bem? 😊 Está na hora de agendar seu retorno! Que tal marcarmos um horário? Tem disponibilidade essa semana? 💜' },
+      { id: 3, nome: '😴 Reativação', texto: 'Olá [Nome]! Sentimos sua falta por aqui! 😊 Que tal uma avaliação gratuita para conversarmos sobre novidades e resultados? Ficaria muito feliz em te receber! 💙' },
+      { id: 4, nome: '✨ Pós-procedimento', texto: 'Olá [Nome]! Como você está se sentindo após o procedimento? 😊 Lembre-se dos cuidados orientados. Qualquer dúvida, pode me chamar! 💜' },
+      { id: 5, nome: '🎁 Promoção', texto: 'Olá [Nome]! 🌟 Temos uma novidade especial para você! [Descreva a promoção]. Vagas limitadas — entre em contato para garantir a sua! 💙' },
+    ];
+
+    const copiarMsg = (texto) => {
+      navigator.clipboard.writeText(texto).then(() => toast('Mensagem copiada!')).catch(() => toast('Não foi possível copiar', 'erro'));
+    };
+
+    // ---- AGENDA ----
+    const agendaMes = ref(dayjs().startOf('month'));
+    const diaAgendaSelecionado = ref(dayjs().format('YYYY-MM-DD'));
+    const tiposAgend = ['Consulta', 'Procedimento', 'Retorno', 'Avaliação'];
+    const statusAgend = ['Agendado', 'Confirmado', 'Realizado', 'Cancelado'];
+
+    const mesAtualLabel = computed(() => agendaMes.value.format('MMMM [de] YYYY'));
+    const mesAnterior = () => { agendaMes.value = agendaMes.value.subtract(1, 'month'); };
+    const mesProximo = () => { agendaMes.value = agendaMes.value.add(1, 'month'); };
+
+    const diasDoMes = computed(() => {
+      const inicio = agendaMes.value.startOf('month');
+      const fim = agendaMes.value.endOf('month');
+      const dias = [];
+      const diaInicio = inicio.day();
+      for (let i = 0; i < diaInicio; i++) dias.push({ data: null, numero: null, isHoje: false });
+      for (let d = inicio; !d.isAfter(fim); d = d.add(1, 'day')) {
+        dias.push({ data: d.format('YYYY-MM-DD'), numero: d.date(), isHoje: d.isSame(dayjs(), 'day') });
+      }
+      return dias;
+    });
+
+    const agendamentosNoDia = (data) => {
+      if (!data) return [];
+      return dados.agendamentos.filter(ag => ag.data === data).sort((a,b) => a.hora.localeCompare(b.hora));
+    };
+
+    const modalAgend = reactive({ open: false, dados: {} });
+
+    const abrirModalNovoAgend = () => {
+      Object.assign(modalAgend, { open: true, dados: { tipo: '', status: 'Agendado', pacienteId: '', procedimento: '', data: dayjs().format('YYYY-MM-DD'), hora: '09:00', observacoes: '' } });
+    };
+
+    const salvarAgend = () => {
+      if (!modalAgend.dados.tipo || !modalAgend.dados.data) return toast('Tipo e data são obrigatórios', 'erro');
+      const pid = modalAgend.dados.pacienteId;
+      let nome = '';
+      if (pid && pid.startsWith('p:')) nome = nomePaciente(pid.slice(2));
+      else if (pid && pid.startsWith('l:')) {
+        const lead = dados.leads.find(l => l.id === pid.slice(2));
+        nome = lead ? lead.nome + ' (Lead)' : '';
+      }
+      if (modalAgend.dados.id) {
+        const idx = dados.agendamentos.findIndex(a => a.id === modalAgend.dados.id);
+        if (idx >= 0) dados.agendamentos[idx] = { ...modalAgend.dados, pacienteNome: nome };
+        toast('Agendamento atualizado!');
+      } else {
+        dados.agendamentos.push({ ...modalAgend.dados, id: 'AG' + Date.now(), pacienteNome: nome });
+        toast('Agendamento criado!');
+      }
+      salvar();
+      modalAgend.open = false;
+    };
+
+    const excluirAgend = () => {
+      if (!confirm('Excluir este agendamento?')) return;
+      const idx = dados.agendamentos.findIndex(a => a.id === modalAgend.dados.id);
+      if (idx >= 0) dados.agendamentos.splice(idx, 1);
+      salvar();
+      toast('Agendamento excluído.');
+      modalAgend.open = false;
+    };
+
+    // ---- PROCEDIMENTOS ----
+    const modalProced = reactive({ open: false, dados: {} });
+
+    const abrirModalNovoProced = () => {
+      Object.assign(modalProced, { open: true, dados: { duracao: 60, valor: 0 } });
+    };
+
+    const editarProcedimento = (p) => {
+      Object.assign(modalProced, { open: true, dados: { ...p } });
+    };
+
+    const salvarProcedimento = () => {
+      if (!modalProced.dados.nome) return toast('Nome obrigatório', 'erro');
+      if (modalProced.dados.id) {
+        const idx = dados.procedimentos.findIndex(p => p.id === modalProced.dados.id);
+        if (idx >= 0) dados.procedimentos[idx] = { ...modalProced.dados };
+        toast('Procedimento atualizado!');
+      } else {
+        dados.procedimentos.push({ ...modalProced.dados, id: Date.now() });
+        toast('Procedimento criado!');
+      }
+      salvar();
+      modalProced.open = false;
+    };
+
+    const excluirProcedimento = (id) => {
+      if (!confirm('Excluir este procedimento?')) return;
+      const idx = dados.procedimentos.findIndex(p => p.id === id);
+      if (idx >= 0) dados.procedimentos.splice(idx, 1);
+      salvar();
+      toast('Procedimento excluído.');
+    };
+
+    const atendimentosRecentes = computed(() => [...dados.atendimentos].sort((a,b) => b.data.localeCompare(a.data)).slice(0, 20));
+
+    // ---- MODAL ATENDIMENTO ----
+    const modalAtend = reactive({ open: false, dados: {}, pacienteFixo: false });
+
+    const abrirModalNovoAtend = (pacienteId) => {
+      const fixo = !!pacienteId;
+      Object.assign(modalAtend, { open: true, dados: { pacienteId: pacienteId || '', procedimentoId: '', data: dayjs().format('YYYY-MM-DD'), valor: 0, observacoes: '' }, pacienteFixo: fixo });
+    };
+
+    const preencherValorProced = () => {
+      const p = dados.procedimentos.find(p => p.id == modalAtend.dados.procedimentoId);
+      if (p) modalAtend.dados.valor = p.valor;
+    };
+
+    const salvarAtendimento = () => {
+      if (!modalAtend.dados.pacienteId || !modalAtend.dados.procedimentoId || !modalAtend.dados.data) return toast('Preencha todos os campos obrigatórios', 'erro');
+      const proced = dados.procedimentos.find(p => p.id == modalAtend.dados.procedimentoId);
+      const dataRetorno = proced?.intervaloRetorno ? dayjs(modalAtend.dados.data).add(proced.intervaloRetorno, 'day').format('YYYY-MM-DD') : null;
+      dados.atendimentos.push({ id: 'A' + Date.now(), pacienteId: modalAtend.dados.pacienteId, data: modalAtend.dados.data, procedimento: proced?.nome || '', valor: modalAtend.dados.valor, dataRetorno, observacoes: modalAtend.dados.observacoes });
+      salvar();
+      toast('Atendimento registrado!');
+      modalAtend.open = false;
+    };
+
+    // ---- COMUNICAÇÃO ----
+    const aniversariantesProximos = computed(() => {
+      const hoje = dayjs();
+      return dados.pacientes.map(p => {
+        if (!p.dataNascimento) return null;
+        const dn = dayjs(p.dataNascimento);
+        let aniv = dn.year(hoje.year());
+        if (aniv.isBefore(hoje, 'day')) aniv = aniv.add(1, 'year');
+        const dias = aniv.diff(hoje, 'day');
+        return dias <= 30 ? { ...p, diasAniversario: dias } : null;
+      }).filter(Boolean).sort((a,b) => a.diasAniversario - b.diasAniversario);
+    });
+
+    const retornosPendentes = computed(() => {
+      const hoje = dayjs();
+      const limite = hoje.add(14, 'day');
+      return dados.atendimentos
+        .filter(a => a.dataRetorno && dayjs(a.dataRetorno).isBefore(limite))
+        .map(a => ({ ...a, pacienteNome: nomePaciente(a.pacienteId) }))
+        .sort((a,b) => a.dataRetorno.localeCompare(b.dataRetorno));
+    });
+
+    const retornoStyle = (r) => {
+      const d = dayjs(r.dataRetorno);
+      const hoje = dayjs();
+      if (d.isBefore(hoje)) return 'background:#fef2f2;border-color:#fecaca;';
+      if (d.diff(hoje, 'day') <= 7) return 'background:#fff7ed;border-color:#fed7aa;';
+      return 'background:#fefce8;border-color:#fde68a;';
+    };
+
+    const retornoStatusClass = (r) => {
+      const d = dayjs(r.dataRetorno);
+      const hoje = dayjs();
+      if (d.isBefore(hoje)) return 'bg-red-100 text-red-700';
+      if (d.diff(hoje, 'day') <= 7) return 'bg-orange-100 text-orange-700';
+      return 'bg-amber-100 text-amber-700';
+    };
+
+    const retornoStatusLabel = (r) => {
+      const d = dayjs(r.dataRetorno);
+      const hoje = dayjs();
+      if (d.isBefore(hoje)) return 'Vencido';
+      if (d.diff(hoje, 'day') <= 7) return 'Urgente';
+      return 'Próximo';
+    };
+
+    const pacientesInativos = computed(() => {
+      return dados.pacientes.map(p => {
+        const ats = dados.atendimentos.filter(a => a.pacienteId === p.id).sort((a,b) => b.data.localeCompare(a.data));
+        if (!ats.length) return null;
+        const diasSemRetorno = dayjs().diff(dayjs(ats[0].data), 'day');
+        if (diasSemRetorno < 90) return null;
+        return { ...p, ultimaVisitaFormatada: formatData(ats[0].data), diasSemRetorno, ltv: calcularLTV(p.id) };
+      }).filter(Boolean).sort((a,b) => b.diasSemRetorno - a.diasSemRetorno);
+    });
+
+    // ---- FINANCEIRO ----
+    const financeiro = computed(() => {
+      const hoje = dayjs();
+      const receitaTotal = dados.atendimentos.reduce((s,a) => s+(a.valor||0), 0);
+      const receitaMes = dados.atendimentos.filter(a => dayjs(a.data).isSame(hoje, 'month')).reduce((s,a) => s+(a.valor||0), 0);
+      const ltvMedio = dados.pacientes.length ? Math.round(receitaTotal / dados.pacientes.length) : 0;
+      const ticketMedio = dados.atendimentos.length ? Math.round(receitaTotal / dados.atendimentos.length) : 0;
+      return { receitaTotal, receitaMes, ltvMedio, ticketMedio };
+    });
+
+    const topPacientesLTV = computed(() => {
+      return dados.pacientes.map(p => {
+        const ats = atendimentosDoPaciente(p.id);
+        const ltv = calcularLTV(p.id);
+        return { ...p, ltv, qtdProced: ats.length, ticketMedio: ats.length ? Math.round(ltv/ats.length) : 0 };
+      }).sort((a,b) => b.ltv - a.ltv).slice(0, 5);
+    });
+
+    const receitaPorProced = computed(() => {
+      const map = {};
+      dados.atendimentos.forEach(a => {
+        if (!map[a.procedimento]) map[a.procedimento] = { nome: a.procedimento, qtd: 0, total: 0 };
+        map[a.procedimento].qtd++;
+        map[a.procedimento].total += a.valor || 0;
+      });
+      const total = dados.atendimentos.reduce((s,a) => s+(a.valor||0), 0);
+      return Object.values(map).sort((a,b) => b.total - a.total).map(r => ({ ...r, pct: total ? Math.round(r.total/total*100) : 0 }));
+    });
+
+    // ---- RELATÓRIOS ----
+    const funilConversao = computed(() => {
+      const cols = kanbanColunas.map(c => ({ ...c, count: dados.leads.filter(l => l.status === c.id).length }));
+      const maxCount = Math.max(...cols.map(c => c.count), 1);
+      return cols.map(c => ({ ...c, pct: Math.round(c.count / maxCount * 100) }));
+    });
+
+    const taxasConversao = computed(() => {
+      const stages = ['novo', 'contato', 'consultoria', 'proposta', 'convertido'];
+      const result = [];
+      for (let i = 0; i < stages.length - 1; i++) {
+        const from = dados.leads.filter(l => l.status === stages[i] || stages.indexOf(l.status) > i).length;
+        const to = dados.leads.filter(l => stages.indexOf(l.status) > i).length;
+        const taxa = from ? Math.round(to / from * 100) : 0;
+        result.push({ label: `${kanbanColunas[i].label} → ${kanbanColunas[i+1].label}`, taxa });
+      }
+      return result;
+    });
+
+    // ---- CONFIGURAÇÕES ----
+    const salvarConfig = () => {
+      salvar();
+      toast('Configurações salvas!');
+    };
+
+    // ============ GRÁFICOS ============
+    let charts = {};
+
+    const destroyChart = (id) => { if (charts[id]) { charts[id].destroy(); delete charts[id]; } };
+
+    const criarGraficoReceita = () => {
+      destroyChart('receita');
+      const canvas = document.getElementById('chartReceita');
+      if (!canvas) return;
+      const hoje = dayjs();
+      const labels = [], data = [];
+      for (let i = 5; i >= 0; i--) {
+        const m = hoje.subtract(i, 'month');
+        labels.push(m.format('MMM'));
+        const total = dados.atendimentos.filter(a => dayjs(a.data).isSame(m, 'month')).reduce((s,a)=>s+(a.valor||0),0);
+        data.push(total);
+      }
+      charts['receita'] = new Chart(canvas, { type: 'line', data: { labels, datasets: [{ data, borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.08)', tension: 0.4, fill: true, pointBackgroundColor: '#7c3aed', pointRadius: 4 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => 'R$' + (v/1000).toFixed(0) + 'k', font: { size: 10 } }, grid: { color: '#f1f5f9' } }, x: { ticks: { font: { size: 10 } }, grid: { display: false } } } } });
+    };
+
+    const criarGraficoFunil = () => {
+      destroyChart('funil');
+      const canvas = document.getElementById('chartFunil');
+      if (!canvas) return;
+      const cols = kanbanColunas.filter(c => c.id !== 'perdido');
+      charts['funil'] = new Chart(canvas, { type: 'bar', data: { labels: cols.map(c=>c.label), datasets: [{ data: cols.map(c=>dados.leads.filter(l=>l.status===c.id).length), backgroundColor: cols.map(c=>c.cor+'dd') }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { ticks: { font: { size: 10 } }, grid: { color: '#f1f5f9' } }, x: { ticks: { font: { size: 9 } }, grid: { display: false } } } } });
+    };
+
+    const criarGraficoProced = () => {
+      destroyChart('proced');
+      const canvas = document.getElementById('chartProced');
+      if (!canvas) return;
+      const map = {};
+      dados.atendimentos.forEach(a => { map[a.procedimento] = (map[a.procedimento]||0) + 1; });
+      const sorted = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,6);
+      const cores = ['#7c3aed','#db2777','#3b82f6','#10b981','#f59e0b','#ef4444'];
+      charts['proced'] = new Chart(canvas, { type: 'doughnut', data: { labels: sorted.map(s=>s[0]), datasets: [{ data: sorted.map(s=>s[1]), backgroundColor: cores, borderWidth: 0 }] }, options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 10, padding: 8 } } }, cutout: '65%' } });
+    };
+
+    const criarGraficosFinanceiro = () => {
+      destroyChart('receitaFin');
+      destroyChart('categFin');
+      nextTick(() => {
+        const c1 = document.getElementById('chartReceitaFin');
+        if (c1) {
+          const hoje = dayjs();
+          const labels = [], data = [];
+          for (let i = 11; i >= 0; i--) {
+            const m = hoje.subtract(i, 'month');
+            labels.push(m.format('MMM/YY'));
+            data.push(dados.atendimentos.filter(a => dayjs(a.data).isSame(m, 'month')).reduce((s,a)=>s+(a.valor||0),0));
+          }
+          charts['receitaFin'] = new Chart(c1, { type: 'line', data: { labels, datasets: [{ data, borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.08)', tension: 0.4, fill: true, pointRadius: 3 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => 'R$'+(v/1000).toFixed(0)+'k', font:{size:9} }, grid:{color:'#f1f5f9'} }, x:{ticks:{font:{size:8}},grid:{display:false}} } } });
+        }
+        const c2 = document.getElementById('chartCategFin');
+        if (c2) {
+          const map = {};
+          dados.atendimentos.forEach(a => {
+            const p = dados.procedimentos.find(p=>p.nome===a.procedimento);
+            const cat = p?.categoria || 'Outros';
+            map[cat] = (map[cat]||0) + (a.valor||0);
+          });
+          const entries = Object.entries(map).sort((a,b)=>b[1]-a[1]);
+          const cores = ['#7c3aed','#db2777','#3b82f6','#10b981','#f59e0b','#ef4444','#0891b2','#8b5cf6'];
+          charts['categFin'] = new Chart(c2, { type: 'bar', data: { labels: entries.map(e=>e[0]), datasets: [{ data: entries.map(e=>e[1]), backgroundColor: cores }] }, options: { responsive: true, plugins:{legend:{display:false}}, scales:{y:{ticks:{callback:v=>'R$'+(v/1000).toFixed(0)+'k',font:{size:9}},grid:{color:'#f1f5f9'}},x:{ticks:{font:{size:9}},grid:{display:false}}} } });
+        }
+      });
+    };
+
+    const criarGraficosRelatorios = () => {
+      ['canal','procedRel','novos'].forEach(k => destroyChart(k));
+      nextTick(() => {
+        const cCanal = document.getElementById('chartCanal');
+        if (cCanal) {
+          const map = {};
+          dados.leads.forEach(l => { map[l.origem] = (map[l.origem]||0) + 1; });
+          const entries = Object.entries(map);
+          const cores = ['#7c3aed','#db2777','#3b82f6','#10b981','#f59e0b','#ef4444'];
+          charts['canal'] = new Chart(cCanal, { type: 'doughnut', data: { labels: entries.map(e=>e[0]), datasets: [{ data: entries.map(e=>e[1]), backgroundColor: cores, borderWidth: 0 }] }, options: { responsive: true, plugins: { legend: { position: 'bottom', labels:{font:{size:10},boxWidth:12} } }, cutout: '55%' } });
+        }
+        const cPR = document.getElementById('chartProcedRel');
+        if (cPR) {
+          const map = {};
+          dados.atendimentos.forEach(a => { map[a.procedimento] = (map[a.procedimento]||0) + 1; });
+          const sorted = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,8);
+          charts['procedRel'] = new Chart(cPR, { type: 'bar', data: { labels: sorted.map(s=>s[0]), datasets: [{ data: sorted.map(s=>s[1]), backgroundColor: '#7c3aed' }] }, options: { indexAxis: 'y', responsive: true, plugins:{legend:{display:false}}, scales:{x:{ticks:{font:{size:9}},grid:{color:'#f1f5f9'}},y:{ticks:{font:{size:9}},grid:{display:false}}} } });
+        }
+        const cNovos = document.getElementById('chartNovos');
+        if (cNovos) {
+          const hoje = dayjs();
+          const labels = [], data = [];
+          for (let i = 5; i >= 0; i--) {
+            const m = hoje.subtract(i, 'month');
+            labels.push(m.format('MMM'));
+            data.push(dados.pacientes.filter(p => dayjs(p.dataCadastro).isSame(m,'month')).length);
+          }
+          charts['novos'] = new Chart(cNovos, { type: 'line', data: { labels, datasets: [{ data, borderColor: '#db2777', backgroundColor: 'rgba(219,39,119,0.08)', tension: 0.4, fill: true, pointRadius: 4, pointBackgroundColor:'#db2777' }] }, options: { responsive: true, plugins:{legend:{display:false}}, scales:{y:{ticks:{font:{size:10}},grid:{color:'#f1f5f9'}},x:{ticks:{font:{size:10}},grid:{display:false}}} } });
+        }
+      });
+    };
+
+    // Watch modulo changes to init charts
+    watch(modulo, async (novo) => {
+      await nextTick();
+      if (novo === 'dashboard') { setTimeout(() => { criarGraficoReceita(); criarGraficoFunil(); criarGraficoProced(); }, 100); }
+      if (novo === 'financeiro') { setTimeout(() => { criarGraficosFinanceiro(); }, 100); }
+      if (novo === 'relatorios') { setTimeout(() => { criarGraficosRelatorios(); }, 100); }
+    });
+
+    onMounted(() => {
+      inicializar();
+    });
+
+    return {
+      modulo, menus, toasts, mostrarNotifs, alertasCount, dataHoje,
+      procedimentos, leads, pacientes, atendimentos, agendamentos, config,
+      kpis, alertas, proximosAgendamentos,
+      formatCurrency, formatData, formatDataAniversario, diasRelativo, formatDiaMes, formatDataLabel,
+      nomePaciente, avatarCor, calcularLTV, ultimaVisita, isChurnRisk, scoreClass,
+      tipoAgendCor, tipoAgendBg, statusAgendClass,
+      atendimentosDoPaciente, ticketMedioPaciente, jornadaPaciente, aniversarioInfo, retornosPaciente,
+      kanbanColunas, origens, leadsNaColuna,
+      modalLead, abrirModalNovoLead, abrirLead, salvarLead, adicionarFollowup, marcarPerdido, converterEmPaciente,
+      buscaPaciente, filtroPaciente, filtrosPacientes, pacientesFiltrados,
+      abasPaciente, modalPaciente, abrirPaciente, abrirModalNovoPaciente, salvarPaciente,
+      templateAniversario, templateReativacao, templatesPaciente, templatesMsg, copiarMsg,
+      agendaMes, diaAgendaSelecionado, tiposAgend, statusAgend,
+      mesAtualLabel, mesAnterior, mesProximo, diasDoMes, agendamentosNoDia,
+      modalAgend, abrirModalNovoAgend, salvarAgend, excluirAgend,
+      modalProced, abrirModalNovoProced, editarProcedimento, salvarProcedimento, excluirProcedimento, atendimentosRecentes,
+      modalAtend, abrirModalNovoAtend, preencherValorProced, salvarAtendimento,
+      aniversariantesProximos, retornosPendentes, retornoStyle, retornoStatusClass, retornoStatusLabel, pacientesInativos,
+      financeiro, topPacientesLTV, receitaPorProced,
+      funilConversao, taxasConversao,
+      salvarConfig,
+      tela, authUser, setupForm, loginForm, configurar, fazerLogin, logout, reconfigurar,
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
