@@ -105,7 +105,7 @@
         </div>
         <button v-if="!setupForm.binIdCriado" @click="configurar" :disabled="setupForm.loading" class="w-full py-3 rounded-xl text-white font-semibold hover:opacity-90 transition disabled:opacity-60" style="background:#7c3aed;">
           <span v-if="setupForm.loading" class="flex items-center justify-center gap-2"><svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Conectando...</span>
-          <span v-else>{{setupForm.binId ? 'Conectar ao banco existente →' : 'Criar banco e entrar →'}}</span>
+          <span v-else>{{setupForm.binId ? '🔗 Conectar e Entrar →' : '✨ Criar banco e entrar →'}}</span>
         </button>
       </div>
     </div>
@@ -1464,20 +1464,11 @@ createApp({
     }
 
     async function inicializar() {
-      if (!jbKey || !jbBin) {
-        tela.value = 'configuracao';
-        return;
-      }
-      try {
-        const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 12000));
-        const remoto = await Promise.race([jbCarregar(), timeout]);
-        if (remoto && typeof remoto === 'object') Object.assign(dados, remoto);
-        tela.value = 'app';
-        setTimeout(() => { criarGraficoReceita(); criarGraficoFunil(); criarGraficoProced(); }, 300);
-      } catch(e) {
-        console.error('Erro ao inicializar:', e);
-        tela.value = 'configuracao';
-      }
+      // Pré-preencher formulário se já tiver dados salvos
+      if (jbKey) setupForm.apiKey = jbKey;
+      if (jbBin) setupForm.binId = jbBin;
+      // Sempre mostra tela de configuração/conexão
+      tela.value = 'configuracao';
     }
 
     async function configurar() {
