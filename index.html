@@ -1306,19 +1306,37 @@ const JB_BASE = 'https://api.jsonbin.io/v3';
 let jbKey = localStorage.getItem('dermcrm_jb_key') || '';
 let jbBin = localStorage.getItem('dermcrm_jb_bin') || '';
 
+async function jbFetch(url, opts = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const r = await fetch(url, { ...opts, signal: controller.signal });
+    clearTimeout(tid);
+    return r;
+  } catch(e) {
+    clearTimeout(tid);
+    if (e.name === 'AbortError') throw new Error('Tempo esgotado. Verifique sua conexão com a internet.');
+    throw new Error('Sem conexão. Verifique sua internet e tente novamente.');
+  }
+}
 async function jbCarregar() {
-  const r = await fetch(`${JB_BASE}/b/${jbBin}/latest`, { headers: { 'X-Master-Key': jbKey } });
-  if (!r.ok) throw new Error('Falha ao carregar (status ' + r.status + ')');
-  return (await r.json()).record;
+  const r = await jbFetch(`${JB_BASE}/b/${jbBin}/latest`, { headers: { 'X-Master-Key': jbKey } });
+  if (r.status === 401) throw new Error('Master Key inválida. Verifique e tente novamente.');
+  if (r.status === 404) throw new Error('ID do Banco não encontrado. Verifique o ID e tente novamente.');
+  if (!r.ok) throw new Error('Erro ao carregar dados (código ' + r.status + ')');
+  const json = await r.json();
+  return json.record;
 }
-async function jbSalvar(dados) {
-  const r = await fetch(`${JB_BASE}/b/${jbBin}`, { method: 'PUT', headers: { 'X-Master-Key': jbKey, 'Content-Type': 'application/json' }, body: JSON.stringify(dados) });
-  if (!r.ok) throw new Error('Falha ao salvar');
+async function jbSalvar(dadosObj) {
+  const r = await jbFetch(`${JB_BASE}/b/${jbBin}`, { method: 'PUT', headers: { 'X-Master-Key': jbKey, 'Content-Type': 'application/json' }, body: JSON.stringify(dadosObj) });
+  if (!r.ok) throw new Error('Falha ao salvar (código ' + r.status + ')');
 }
-async function jbCriar(dados) {
-  const r = await fetch(`${JB_BASE}/b`, { method: 'POST', headers: { 'X-Master-Key': jbKey, 'Content-Type': 'application/json', 'X-Bin-Name': 'dermcrm', 'X-Bin-Private': 'true' }, body: JSON.stringify(dados) });
-  if (!r.ok) { const t = await r.text(); throw new Error('Chave inválida ou sem permissão: ' + t); }
-  return (await r.json()).metadata.id;
+async function jbCriar(dadosObj) {
+  const r = await jbFetch(`${JB_BASE}/b`, { method: 'POST', headers: { 'X-Master-Key': jbKey, 'Content-Type': 'application/json', 'X-Bin-Name': 'dermcrm', 'X-Bin-Private': 'true' }, body: JSON.stringify(dadosObj) });
+  if (r.status === 401) throw new Error('Master Key inválida. Copie a chave correta em jsonbin.io → API Keys.');
+  if (!r.ok) { const t = await r.text(); throw new Error('Erro ao criar banco: ' + t); }
+  const json = await r.json();
+  return json.metadata.id;
 }
 
 const { createApp, ref, computed, reactive, onMounted, watch, nextTick } = Vue;
