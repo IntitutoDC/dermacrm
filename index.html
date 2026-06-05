@@ -53,65 +53,8 @@
 <body class="bg-slate-100">
 <div id="app" v-cloak>
 
-  <!-- ===== CARREGANDO ===== -->
-  <div v-if="tela==='carregando'" class="min-h-screen flex items-center justify-center bg-slate-100">
-    <div class="text-center">
-      <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background:#7c3aed;">
-        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-      </div>
-      <div class="text-2xl font-bold text-slate-800">DermaCRM</div>
-      <div class="text-slate-400 text-sm mt-2 flex items-center justify-center gap-2">
-        <svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-        Conectando...
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== CONFIGURAÇÃO JSONBIN ===== -->
-  <div v-if="tela==='configuracao'" class="min-h-screen flex items-center justify-center bg-slate-100 p-4">
-    <div class="bg-white rounded-2xl shadow-lg w-full max-w-md p-8">
-      <div class="text-center mb-6">
-        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style="background:#7c3aed;">
-          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-        </div>
-        <h1 class="text-2xl font-bold text-slate-800">DermaCRM</h1>
-        <p class="text-slate-500 text-sm mt-1">Configure o acesso em nuvem</p>
-      </div>
-      <div class="bg-violet-50 rounded-xl p-4 mb-5 text-xs text-slate-600 space-y-1.5">
-        <p class="font-bold text-violet-700 mb-2">📋 Você já tem GitHub — use o token criado antes!</p>
-        <p>1. Acesse <a href="https://github.com/settings/tokens" target="_blank" class="text-violet-600 underline font-medium">github.com/settings/tokens</a></p>
-        <p>2. Use o token que você criou (<strong>ghp_...</strong>) ou crie um novo com escopo <strong>gist</strong></p>
-        <p>3. Cole o token abaixo e clique em Conectar</p>
-      </div>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1.5">🔑 GitHub Token</label>
-          <input v-model="setupForm.apiKey" type="text" placeholder="ghp_..." class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition font-mono">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1.5">🗄️ ID do Gist <span class="text-slate-400 font-normal">(vazio = criar novo banco)</span></label>
-          <input v-model="setupForm.binId" type="text" placeholder="Deixe vazio no primeiro computador" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition font-mono">
-          <p class="text-xs text-slate-400 mt-1">No 2º computador: cole o ID gerado no primeiro.</p>
-        </div>
-        <div v-if="setupForm.erroMsg" class="text-sm text-red-600 bg-red-50 rounded-xl p-3 flex gap-2"><span>⚠️</span><span>{{setupForm.erroMsg}}</span></div>
-        <div v-if="setupForm.binIdCriado" class="bg-green-50 border border-green-200 rounded-xl p-4">
-          <p class="text-xs font-bold text-green-700 mb-1">✅ Banco criado! Anote este ID para outros computadores:</p>
-          <div class="flex items-center gap-2 mt-2">
-            <code class="flex-1 bg-white border border-green-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-700 break-all select-all">{{setupForm.binIdCriado}}</code>
-            <button @click="copiarBinId" class="text-xs bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition whitespace-nowrap">Copiar</button>
-          </div>
-          <button @click="entrarNoApp" class="w-full mt-3 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition" style="background:#7c3aed;">Entrar no CRM →</button>
-        </div>
-        <button v-if="!setupForm.binIdCriado" @click="configurar" :disabled="setupForm.loading" class="w-full py-3 rounded-xl text-white font-semibold hover:opacity-90 transition disabled:opacity-60" style="background:#7c3aed;">
-          <span v-if="setupForm.loading" class="flex items-center justify-center gap-2"><svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Conectando...</span>
-          <span v-else>{{setupForm.binId ? '🔗 Conectar e Entrar →' : '✨ Criar banco e entrar →'}}</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- ===== CRM APP ===== -->
-  <div v-if="tela==='app'" class="flex h-screen overflow-hidden">
+  <div class="flex h-screen overflow-hidden">
 
   <!-- SIDEBAR -->
   <aside class="flex-shrink-0 flex flex-col" style="width:260px;background:#1e1b4b;">
@@ -150,10 +93,15 @@
           <div class="text-white/40 text-xs truncate">{{authUser?.email || ''}}</div>
         </div>
       </div>
-      <button @click="reconfigurar" class="w-full flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 py-0.5 transition">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-        Reconfigurar acesso
+      <button @click="exportarDados" class="w-full flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 py-1 transition">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Exportar dados
       </button>
+      <label class="w-full flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 py-1 transition cursor-pointer">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        Importar dados
+        <input type="file" accept=".json" @change="importarDados" class="hidden">
+      </label>
     </div>
   </aside>
 
@@ -1300,67 +1248,7 @@
   </div><!-- end CRM App -->
 </div><!-- end #app -->
 <script>
-// ── GitHub Gist storage ──────────────────────────────────────────
-const GH_BASE = 'https://api.github.com';
-let ghToken = localStorage.getItem('dermcrm_gh_token') || '';
-let ghGist  = localStorage.getItem('dermcrm_gh_gist')  || '';
-
-async function ghFetch(url, opts = {}, ms = 20000) {
-  const ctrl = new AbortController();
-  const tid  = setTimeout(() => ctrl.abort(), ms);
-  try {
-    const r = await fetch(url, {
-      ...opts,
-      signal: ctrl.signal,
-      headers: {
-        'Authorization': 'token ' + ghToken,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json',
-        ...(opts.headers || {})
-      }
-    });
-    clearTimeout(tid);
-    return r;
-  } catch(e) {
-    clearTimeout(tid);
-    if (e.name === 'AbortError') throw new Error('Tempo esgotado (20s). Verifique sua internet.');
-    throw new Error('Sem conexão com internet.');
-  }
-}
-async function ghCarregar() {
-  const r = await ghFetch(`${GH_BASE}/gists/${ghGist}`);
-  if (r.status === 401) throw new Error('Token inválido. Gere um novo token no GitHub.');
-  if (r.status === 404) throw new Error('ID do Gist não encontrado. Verifique o ID.');
-  if (!r.ok) throw new Error('Erro ao carregar dados (código ' + r.status + ')');
-  const json = await r.json();
-  const content = json.files?.['dermcrm.json']?.content;
-  if (!content) throw new Error('Arquivo de dados não encontrado.');
-  return JSON.parse(content);
-}
-async function ghSalvar(dadosObj) {
-  const r = await ghFetch(`${GH_BASE}/gists/${ghGist}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ files: { 'dermcrm.json': { content: JSON.stringify(dadosObj) } } })
-  });
-  if (!r.ok) throw new Error('Erro ao salvar (código ' + r.status + ')');
-}
-async function ghCriar(dadosObj) {
-  const r = await ghFetch(`${GH_BASE}/gists`, {
-    method: 'POST',
-    body: JSON.stringify({
-      description: 'DermaCRM - Dados da Clínica',
-      public: false,
-      files: { 'dermcrm.json': { content: JSON.stringify(dadosObj) } }
-    })
-  });
-  if (r.status === 401) throw new Error('Token inválido. Gere um novo token no GitHub (scope: gist).');
-  if (!r.ok) throw new Error('Erro ao criar banco de dados (código ' + r.status + ')');
-  const json = await r.json();
-  return json.id;
-}
-// Aliases para compatibilidade com o resto do código
-const jbCarregar = ghCarregar;
-const jbSalvar   = ghSalvar;
+// ── Armazenamento local ───────────────────────────────────────────
 
 const { createApp, ref, computed, reactive, onMounted, watch, nextTick } = Vue;
 
@@ -1479,18 +1367,13 @@ createApp({
     const modulo = ref('dashboard');
     const toasts = ref([]);
     const mostrarNotifs = ref(false);
-    const tela = ref('carregando');
-    const authUser = ref(null);
-    const setupForm = reactive({ apiKey: '', binId: '', erroMsg: '', loading: false, binIdCriado: '' });
-    const loginForm = reactive({ email: '', senha: '', erroMsg: '', loading: false });
 
-    const dados = reactive({
-      leads: [], pacientes: [], atendimentos: [], agendamentos: [],
-      procedimentos: [], config: {
-        clinicaNome: 'Clínica DermaCRM', medicoNome: 'Dra. Renata Silva',
-        crm: 'CRM 12345-SP', telefone: '', email: '', endereco: ''
-      }
-    });
+    function carregarDados() {
+      const saved = localStorage.getItem('dermcrm_v2');
+      if (saved) { try { return JSON.parse(saved); } catch(e) {} }
+      return dadosPadrao();
+    }
+    const dados = reactive(carregarDados());
     const procedimentos = computed(() => dados.procedimentos);
     const leads = computed(() => dados.leads);
     const pacientes = computed(() => dados.pacientes);
@@ -1498,74 +1381,40 @@ createApp({
     const agendamentos = computed(() => dados.agendamentos);
     const config = computed(() => dados.config);
 
-    async function salvar() {
+    function salvar() {
       localStorage.setItem('dermcrm_v2', JSON.stringify(dados));
-      if (!ghToken || !ghGist) return;
-      try { await ghSalvar(dados); } catch(e) { console.error('Sync error:', e); }
     }
 
-    async function inicializar() {
-      if (ghToken) setupForm.apiKey = ghToken;
-      if (ghGist)  setupForm.binId  = ghGist;
-      tela.value = 'configuracao';
+    function exportarDados() {
+      const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'dermcrm-backup-' + dayjs().format('YYYY-MM-DD') + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('Dados exportados com sucesso!');
     }
 
-    async function configurar() {
-      setupForm.erroMsg = '';
-      setupForm.loading = true;
-      setupForm.binIdCriado = '';
-      try {
-        if (!setupForm.apiKey.trim()) throw new Error('Cole seu GitHub Token.');
-        ghToken = setupForm.apiKey.trim();
-
-        if (setupForm.binId.trim()) {
-          ghGist = setupForm.binId.trim();
-          const remoto = await ghCarregar();
-          Object.assign(dados, remoto);
-          localStorage.setItem('dermcrm_gh_token', ghToken);
-          localStorage.setItem('dermcrm_gh_gist',  ghGist);
-          tela.value = 'app';
+    function importarDados(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const importado = JSON.parse(ev.target.result);
+          if (!importado.pacientes && !importado.leads) throw new Error('Arquivo inválido');
+          Object.assign(dados, importado);
+          salvar();
+          toast('Dados importados com sucesso! ✅');
           setTimeout(() => { criarGraficoReceita(); criarGraficoFunil(); criarGraficoProced(); }, 300);
-        } else {
-          const def = dadosPadrao();
-          Object.assign(dados, def);
-          const gistId = await ghCriar(dados);
-          ghGist = gistId;
-          localStorage.setItem('dermcrm_gh_token', ghToken);
-          localStorage.setItem('dermcrm_gh_gist',  ghGist);
-          setupForm.binIdCriado = gistId;
+        } catch(err) {
+          toast('Erro ao importar: arquivo inválido', 'erro');
         }
-      } catch(e) {
-        setupForm.erroMsg = e.message || 'Erro ao conectar. Verifique o token.';
-      }
-      setupForm.loading = false;
+      };
+      reader.readAsText(file);
+      e.target.value = '';
     }
-
-    function entrarNoApp() {
-      tela.value = 'app';
-      setTimeout(() => { criarGraficoReceita(); criarGraficoFunil(); criarGraficoProced(); }, 300);
-    }
-
-    function copiarBinId() {
-      navigator.clipboard.writeText(setupForm.binIdCriado).then(() => toast('ID copiado!'));
-    }
-
-    async function logout() {
-      tela.value = 'configuracao';
-      setupForm.apiKey = jbKey;
-      setupForm.binId = jbBin;
-      setupForm.binIdCriado = '';
-    }
-
-    function reconfigurar() {
-      localStorage.removeItem('dermcrm_gh_token');
-      localStorage.removeItem('dermcrm_gh_gist');
-      ghToken = ''; ghGist = '';
-      setupForm.apiKey = ''; setupForm.binId = ''; setupForm.binIdCriado = '';
-      tela.value = 'configuracao';
-    }
-
-    function fazerLogin() {} // não usado com JSONBin
 
     function toast(msg, tipo = 'sucesso') {
       const id = Date.now();
@@ -2220,7 +2069,7 @@ createApp({
     });
 
     onMounted(() => {
-      inicializar();
+      setTimeout(() => { criarGraficoReceita(); criarGraficoFunil(); criarGraficoProced(); }, 200);
     });
 
     return {
@@ -2245,7 +2094,7 @@ createApp({
       financeiro, topPacientesLTV, receitaPorProced,
       funilConversao, taxasConversao,
       salvarConfig,
-      tela, authUser, setupForm, loginForm, configurar, fazerLogin, logout, reconfigurar,
+      exportarDados, importarDados,
     };
   }
 }).mount('#app');
