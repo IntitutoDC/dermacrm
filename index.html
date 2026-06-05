@@ -78,19 +78,18 @@
         <p class="text-slate-500 text-sm mt-1">Configure o acesso em nuvem</p>
       </div>
       <div class="bg-violet-50 rounded-xl p-4 mb-5 text-xs text-slate-600 space-y-1.5">
-        <p class="font-bold text-violet-700 mb-2">📋 Antes de continuar:</p>
-        <p>1. Acesse <a href="https://jsonbin.io" target="_blank" class="text-violet-600 underline font-medium">jsonbin.io</a> e crie uma conta grátis</p>
-        <p>2. Após entrar, clique no seu avatar (canto superior direito) → <strong>API Keys</strong></p>
-        <p>3. Copie a <strong>Master Key</strong> (começa com <code class="bg-white px-1 rounded">$2b$...</code>)</p>
-        <p>4. Cole abaixo e clique em Conectar</p>
+        <p class="font-bold text-violet-700 mb-2">📋 Você já tem GitHub — use o token criado antes!</p>
+        <p>1. Acesse <a href="https://github.com/settings/tokens" target="_blank" class="text-violet-600 underline font-medium">github.com/settings/tokens</a></p>
+        <p>2. Use o token que você criou (<strong>ghp_...</strong>) ou crie um novo com escopo <strong>gist</strong></p>
+        <p>3. Cole o token abaixo e clique em Conectar</p>
       </div>
       <div class="space-y-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1.5">🔑 Master Key do JSONBin</label>
-          <input v-model="setupForm.apiKey" type="text" placeholder="$2b$10$..." class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition font-mono">
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">🔑 GitHub Token</label>
+          <input v-model="setupForm.apiKey" type="text" placeholder="ghp_..." class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition font-mono">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1.5">🗄️ ID do Banco <span class="text-slate-400 font-normal">(vazio = criar novo)</span></label>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">🗄️ ID do Gist <span class="text-slate-400 font-normal">(vazio = criar novo banco)</span></label>
           <input v-model="setupForm.binId" type="text" placeholder="Deixe vazio no primeiro computador" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 transition font-mono">
           <p class="text-xs text-slate-400 mt-1">No 2º computador: cole o ID gerado no primeiro.</p>
         </div>
@@ -1301,43 +1300,67 @@
   </div><!-- end CRM App -->
 </div><!-- end #app -->
 <script>
-// JSONBin config
-const JB_BASE = 'https://api.jsonbin.io/v3';
-let jbKey = localStorage.getItem('dermcrm_jb_key') || '';
-let jbBin = localStorage.getItem('dermcrm_jb_bin') || '';
+// ── GitHub Gist storage ──────────────────────────────────────────
+const GH_BASE = 'https://api.github.com';
+let ghToken = localStorage.getItem('dermcrm_gh_token') || '';
+let ghGist  = localStorage.getItem('dermcrm_gh_gist')  || '';
 
-async function jbFetch(url, opts = {}, timeoutMs = 15000) {
-  const controller = new AbortController();
-  const tid = setTimeout(() => controller.abort(), timeoutMs);
+async function ghFetch(url, opts = {}, ms = 20000) {
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), ms);
   try {
-    const r = await fetch(url, { ...opts, signal: controller.signal });
+    const r = await fetch(url, {
+      ...opts,
+      signal: ctrl.signal,
+      headers: {
+        'Authorization': 'token ' + ghToken,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json',
+        ...(opts.headers || {})
+      }
+    });
     clearTimeout(tid);
     return r;
   } catch(e) {
     clearTimeout(tid);
-    if (e.name === 'AbortError') throw new Error('Tempo esgotado. Verifique sua conexão com a internet.');
-    throw new Error('Sem conexão. Verifique sua internet e tente novamente.');
+    if (e.name === 'AbortError') throw new Error('Tempo esgotado (20s). Verifique sua internet.');
+    throw new Error('Sem conexão com internet.');
   }
 }
-async function jbCarregar() {
-  const r = await jbFetch(`${JB_BASE}/b/${jbBin}/latest`, { headers: { 'X-Master-Key': jbKey } });
-  if (r.status === 401) throw new Error('Master Key inválida. Verifique e tente novamente.');
-  if (r.status === 404) throw new Error('ID do Banco não encontrado. Verifique o ID e tente novamente.');
+async function ghCarregar() {
+  const r = await ghFetch(`${GH_BASE}/gists/${ghGist}`);
+  if (r.status === 401) throw new Error('Token inválido. Gere um novo token no GitHub.');
+  if (r.status === 404) throw new Error('ID do Gist não encontrado. Verifique o ID.');
   if (!r.ok) throw new Error('Erro ao carregar dados (código ' + r.status + ')');
   const json = await r.json();
-  return json.record;
+  const content = json.files?.['dermcrm.json']?.content;
+  if (!content) throw new Error('Arquivo de dados não encontrado.');
+  return JSON.parse(content);
 }
-async function jbSalvar(dadosObj) {
-  const r = await jbFetch(`${JB_BASE}/b/${jbBin}`, { method: 'PUT', headers: { 'X-Master-Key': jbKey, 'Content-Type': 'application/json' }, body: JSON.stringify(dadosObj) });
-  if (!r.ok) throw new Error('Falha ao salvar (código ' + r.status + ')');
+async function ghSalvar(dadosObj) {
+  const r = await ghFetch(`${GH_BASE}/gists/${ghGist}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ files: { 'dermcrm.json': { content: JSON.stringify(dadosObj) } } })
+  });
+  if (!r.ok) throw new Error('Erro ao salvar (código ' + r.status + ')');
 }
-async function jbCriar(dadosObj) {
-  const r = await jbFetch(`${JB_BASE}/b`, { method: 'POST', headers: { 'X-Master-Key': jbKey, 'Content-Type': 'application/json', 'X-Bin-Name': 'dermcrm', 'X-Bin-Private': 'true' }, body: JSON.stringify(dadosObj) });
-  if (r.status === 401) throw new Error('Master Key inválida. Copie a chave correta em jsonbin.io → API Keys.');
-  if (!r.ok) { const t = await r.text(); throw new Error('Erro ao criar banco: ' + t); }
+async function ghCriar(dadosObj) {
+  const r = await ghFetch(`${GH_BASE}/gists`, {
+    method: 'POST',
+    body: JSON.stringify({
+      description: 'DermaCRM - Dados da Clínica',
+      public: false,
+      files: { 'dermcrm.json': { content: JSON.stringify(dadosObj) } }
+    })
+  });
+  if (r.status === 401) throw new Error('Token inválido. Gere um novo token no GitHub (scope: gist).');
+  if (!r.ok) throw new Error('Erro ao criar banco de dados (código ' + r.status + ')');
   const json = await r.json();
-  return json.metadata.id;
+  return json.id;
 }
+// Aliases para compatibilidade com o resto do código
+const jbCarregar = ghCarregar;
+const jbSalvar   = ghSalvar;
 
 const { createApp, ref, computed, reactive, onMounted, watch, nextTick } = Vue;
 
@@ -1477,15 +1500,13 @@ createApp({
 
     async function salvar() {
       localStorage.setItem('dermcrm_v2', JSON.stringify(dados));
-      if (!jbKey || !jbBin) return;
-      try { await jbSalvar(dados); } catch(e) { console.error('Sync error:', e); }
+      if (!ghToken || !ghGist) return;
+      try { await ghSalvar(dados); } catch(e) { console.error('Sync error:', e); }
     }
 
     async function inicializar() {
-      // Pré-preencher formulário se já tiver dados salvos
-      if (jbKey) setupForm.apiKey = jbKey;
-      if (jbBin) setupForm.binId = jbBin;
-      // Sempre mostra tela de configuração/conexão
+      if (ghToken) setupForm.apiKey = ghToken;
+      if (ghGist)  setupForm.binId  = ghGist;
       tela.value = 'configuracao';
     }
 
@@ -1494,30 +1515,28 @@ createApp({
       setupForm.loading = true;
       setupForm.binIdCriado = '';
       try {
-        if (!setupForm.apiKey.trim()) throw new Error('Cole a Master Key do JSONBin.');
-        jbKey = setupForm.apiKey.trim();
+        if (!setupForm.apiKey.trim()) throw new Error('Cole seu GitHub Token.');
+        ghToken = setupForm.apiKey.trim();
 
         if (setupForm.binId.trim()) {
-          // Conectar a banco existente
-          jbBin = setupForm.binId.trim();
-          const remoto = await jbCarregar();
+          ghGist = setupForm.binId.trim();
+          const remoto = await ghCarregar();
           Object.assign(dados, remoto);
-          localStorage.setItem('dermcrm_jb_key', jbKey);
-          localStorage.setItem('dermcrm_jb_bin', jbBin);
+          localStorage.setItem('dermcrm_gh_token', ghToken);
+          localStorage.setItem('dermcrm_gh_gist',  ghGist);
           tela.value = 'app';
           setTimeout(() => { criarGraficoReceita(); criarGraficoFunil(); criarGraficoProced(); }, 300);
         } else {
-          // Criar novo banco com dados de exemplo
           const def = dadosPadrao();
           Object.assign(dados, def);
-          const binId = await jbCriar(dados);
-          jbBin = binId;
-          localStorage.setItem('dermcrm_jb_key', jbKey);
-          localStorage.setItem('dermcrm_jb_bin', jbBin);
-          setupForm.binIdCriado = binId;
+          const gistId = await ghCriar(dados);
+          ghGist = gistId;
+          localStorage.setItem('dermcrm_gh_token', ghToken);
+          localStorage.setItem('dermcrm_gh_gist',  ghGist);
+          setupForm.binIdCriado = gistId;
         }
       } catch(e) {
-        setupForm.erroMsg = e.message || 'Erro ao conectar. Verifique a Master Key.';
+        setupForm.erroMsg = e.message || 'Erro ao conectar. Verifique o token.';
       }
       setupForm.loading = false;
     }
@@ -1539,9 +1558,9 @@ createApp({
     }
 
     function reconfigurar() {
-      localStorage.removeItem('dermcrm_jb_key');
-      localStorage.removeItem('dermcrm_jb_bin');
-      jbKey = ''; jbBin = '';
+      localStorage.removeItem('dermcrm_gh_token');
+      localStorage.removeItem('dermcrm_gh_gist');
+      ghToken = ''; ghGist = '';
       setupForm.apiKey = ''; setupForm.binId = ''; setupForm.binIdCriado = '';
       tela.value = 'configuracao';
     }
