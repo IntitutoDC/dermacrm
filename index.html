@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DermaCRM — Clínica de Dermatologia Estética</title>
-  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/locale/pt-br.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/relativeTime.js"></script>
-  <script>tailwind.config={theme:{extend:{colors:{brand:{DEFAULT:'#7c3aed'}}}}}</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>if(typeof tailwind!=='undefined'){tailwind.config={theme:{extend:{colors:{brand:{DEFAULT:'#7c3aed'}}}}}}</script>
   <style>
     [v-cloak] { display: none; }
     body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -38,14 +38,20 @@
     input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
   </style>
 </head>
-<body class="bg-slate-100">
-<div id="app">
+<body style="margin:0;display:flex;min-height:100vh;background:#f1f5f9;">
 
-  <!-- ===== CRM APP ===== -->
-  <div class="flex h-screen overflow-hidden">
+<!-- LOADING SPLASH -->
+<div id="loading" style="display:flex;align-items:center;justify-content:center;height:100vh;width:100%;font-family:sans-serif;">
+  <div style="text-align:center">
+    <div style="font-size:2rem;font-weight:bold;color:#7c3aed">DermaCRM</div>
+    <div style="color:#64748b;margin-top:8px">Carregando...</div>
+  </div>
+</div>
+
+<div id="app" style="display:none;width:100%;">
 
   <!-- SIDEBAR -->
-  <aside class="flex-shrink-0 flex flex-col" style="width:260px;background:#1e1b4b;">
+  <aside style="width:260px;background:#1e1b4b;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;z-index:40;">
     <!-- Logo -->
     <div class="px-6 py-5 border-b border-white/10">
       <div class="flex items-center gap-3">
@@ -94,7 +100,7 @@
   </aside>
 
   <!-- MAIN CONTENT -->
-  <main class="flex-1 overflow-y-auto bg-slate-100">
+  <main style="margin-left:260px;min-height:100vh;overflow-y:auto;flex:1;" class="bg-slate-100">
     <!-- Header -->
     <header class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
       <div>
@@ -1233,15 +1239,14 @@
     </div>
   </div>
 
-  </div><!-- end CRM App -->
 </div><!-- end #app -->
 <script>
 // ── Armazenamento local ───────────────────────────────────────────
 
 const { createApp, ref, computed, reactive, onMounted, watch, nextTick } = Vue;
 
-dayjs.locale('pt-br');
-dayjs.extend(dayjs_plugin_relativeTime);
+try { dayjs.locale('pt-br'); } catch(e) {}
+try { dayjs.extend(dayjs_plugin_relativeTime); } catch(e) {}
 
 // ============ DADOS PADRÃO ============
 function dadosPadrao() {
@@ -1349,7 +1354,7 @@ function dadosPadrao() {
 }
 
 // ============ VUE APP ============
-createApp({
+const vueApp = createApp({
   setup() {
     // ---- STATE ----
     const modulo = ref('dashboard');
@@ -2072,7 +2077,11 @@ createApp({
     });
 
     onMounted(() => {
-      setTimeout(() => { criarGraficoReceita(); criarGraficoFunil(); criarGraficoProced(); }, 200);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      setTimeout(() => {
+        try { criarGraficoReceita(); criarGraficoFunil(); criarGraficoProced(); } catch(e) { console.warn('chart error', e); }
+      }, 300);
     });
 
     return {
@@ -2100,7 +2109,11 @@ createApp({
       exportarDados, importarDados,
     };
   }
-}).mount('#app');
+});
+vueApp.config.errorHandler = (err, instance, info) => {
+  console.error('Vue error:', err, info);
+};
+vueApp.mount('#app');
 
 </script>
 </body>
