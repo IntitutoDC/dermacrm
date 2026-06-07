@@ -87,6 +87,10 @@
           <div class="text-white/40 text-xs truncate">{{config?.clinicaNome || ''}}</div>
         </div>
       </div>
+      <button @click="gerarVisualizacao" class="w-full flex items-center gap-1.5 text-xs text-amber-300 hover:text-amber-100 py-1 transition font-medium">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+        Gerar link para equipe
+      </button>
       <button @click="exportarDados" class="w-full flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 py-1 transition">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         Exportar dados
@@ -1546,6 +1550,238 @@ const vueApp = createApp({
       localStorage.setItem('dermcrm_v3', JSON.stringify(dados));
     }
 
+    function gerarVisualizacao() {
+      const clinica = dados.config?.clinicaNome || 'DermaCRM';
+      const dataGeracao = dayjs().format('DD/MM/YYYY [às] HH:mm');
+      const d = JSON.stringify(dados);
+
+      const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${clinica} — Visualização</title>
+<script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"><\\/script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"><\\/script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/locale/pt-br.js"><\\/script>
+<script src="https://cdn.tailwindcss.com"><\\/script>
+<style>
+*{box-sizing:border-box;}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;}
+.sidebar{width:260px;background:#1e1b4b;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;z-index:40;}
+.main{margin-left:260px;padding:32px;min-height:100vh;}
+.nav-btn{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border:none;border-radius:8px;cursor:pointer;margin-bottom:4px;background:transparent;transition:background .15s;}
+.nav-btn:hover{background:rgba(255,255,255,0.1);}
+.nav-btn.active{background:rgba(255,255,255,0.18);}
+.card{background:white;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1px solid #f1f5f9;}
+</style>
+</head>
+<body>
+<div id="vapp" style="display:flex;min-height:100vh;">
+  <div class="sidebar">
+    <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.1);">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:#7c3aed;display:flex;align-items:center;justify-content:center;">
+          <svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+        </div>
+        <div>
+          <div style="color:white;font-weight:700;font-size:15px;">${clinica}</div>
+          <div style="color:rgba(255,255,255,0.4);font-size:11px;">Visualização</div>
+        </div>
+      </div>
+    </div>
+    <nav style="padding:12px;flex:1;">
+      <button @click="aba='dashboard'" :class="['nav-btn',aba==='dashboard'?'active':'']">
+        <span style="font-size:18px;">📊</span><span :style="aba==='dashboard'?'color:white':'color:rgba(255,255,255,0.6)'" style="font-size:13px;font-weight:500;">Dashboard</span>
+      </button>
+      <button @click="aba='pacientes'" :class="['nav-btn',aba==='pacientes'?'active':'']">
+        <span style="font-size:18px;">👥</span><span :style="aba==='pacientes'?'color:white':'color:rgba(255,255,255,0.6)'" style="font-size:13px;font-weight:500;">Pacientes</span>
+      </button>
+      <button @click="aba='agenda'" :class="['nav-btn',aba==='agenda'?'active':'']">
+        <span style="font-size:18px;">📅</span><span :style="aba==='agenda'?'color:white':'color:rgba(255,255,255,0.6)'" style="font-size:13px;font-weight:500;">Agenda</span>
+      </button>
+      <button @click="aba='leads'" :class="['nav-btn',aba==='leads'?'active':'']">
+        <span style="font-size:18px;">🎯</span><span :style="aba==='leads'?'color:white':'color:rgba(255,255,255,0.6)'" style="font-size:13px;font-weight:500;">Leads</span>
+      </button>
+      <button @click="aba='atendimentos'" :class="['nav-btn',aba==='atendimentos'?'active':'']">
+        <span style="font-size:18px;">💉</span><span :style="aba==='atendimentos'?'color:white':'color:rgba(255,255,255,0.6)'" style="font-size:13px;font-weight:500;">Atendimentos</span>
+      </button>
+    </nav>
+    <div style="padding:16px;border-top:1px solid rgba(255,255,255,0.1);">
+      <div style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);border-radius:8px;padding:8px 12px;text-align:center;">
+        <div style="color:#fbbf24;font-size:11px;font-weight:700;">👁 SOMENTE LEITURA</div>
+      </div>
+      <div style="color:rgba(255,255,255,0.25);font-size:10px;text-align:center;margin-top:8px;">Gerado em ${dataGeracao}</div>
+    </div>
+  </div>
+
+  <main class="main">
+    <div style="background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:12px 20px;margin-bottom:24px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:18px;">👁️</span>
+      <span style="font-size:13px;color:#854d0e;"><strong>Visualização somente leitura</strong> — ${clinica} — Gerado em ${dataGeracao}</span>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div v-if="aba==='dashboard'">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+        <div v-for="k in kpis" :key="k.label" class="card" style="padding:20px;">
+          <div style="font-size:26px;font-weight:800;color:#1e293b;">{{k.valor}}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:4px;">{{k.label}}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="card" style="padding:20px;">
+          <h3 style="font-weight:700;font-size:14px;color:#1e293b;margin:0 0 16px;">📅 Agendamentos de Hoje ({{agendamentosHoje.length}})</h3>
+          <div v-if="!agendamentosHoje.length" style="color:#94a3b8;font-size:13px;text-align:center;padding:20px 0;">Nenhum agendamento hoje</div>
+          <div v-for="ag in agendamentosHoje" :key="ag.id" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;background:#f8fafc;margin-bottom:8px;">
+            <span style="font-weight:700;color:#7c3aed;font-size:13px;min-width:44px;">{{ag.hora}}</span>
+            <div style="flex:1;"><div style="font-weight:600;font-size:13px;color:#1e293b;">{{ag.pacienteNome}}</div><div style="font-size:11px;color:#64748b;">{{ag.tipo}} {{ag.procedimento?'· '+ag.procedimento:''}}</div></div>
+            <span style="font-size:11px;padding:3px 8px;border-radius:6px;" :style="ag.status==='Confirmado'?'background:#dcfce7;color:#15803d;':'background:#f1f5f9;color:#64748b;'">{{ag.status}}</span>
+          </div>
+        </div>
+        <div class="card" style="padding:20px;">
+          <h3 style="font-weight:700;font-size:14px;color:#1e293b;margin:0 0 16px;">🎂 Aniversariantes (próximos 30 dias)</h3>
+          <div v-if="!aniversariantes.length" style="color:#94a3b8;font-size:13px;text-align:center;padding:20px 0;">Nenhum aniversariante próximo</div>
+          <div v-for="p in aniversariantes" :key="p.id" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+            <span style="font-size:13px;font-weight:500;color:#1e293b;">{{p.nome}}</span>
+            <span style="font-size:12px;font-weight:600;" :style="p.diasAniversario===0?'color:#dc2626;':'color:#92400e;'">{{p.diasAniversario===0?'🎉 Hoje!':'em '+p.diasAniversario+' dias'}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PACIENTES -->
+    <div v-if="aba==='pacientes'">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <h2 style="font-weight:700;font-size:20px;color:#1e293b;margin:0;">Pacientes ({{dados.pacientes.length}})</h2>
+        <input v-model="busca" placeholder="Buscar..." style="border:1px solid #e2e8f0;border-radius:10px;padding:8px 14px;font-size:13px;outline:none;width:200px;">
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;">
+        <div v-for="p in pacientesFiltrados" :key="p.id" class="card" style="padding:18px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <div style="width:44px;height:44px;border-radius:50%;background:#7c3aed;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:18px;flex-shrink:0;">{{(p.nome||'?').charAt(0).toUpperCase()}}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:700;font-size:14px;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{p.nome}}</div>
+              <div style="font-size:12px;color:#64748b;">{{p.telefone}}</div>
+            </div>
+            <span v-if="p.tags&&p.tags.includes('VIP')" style="background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;flex-shrink:0;">⭐ VIP</span>
+          </div>
+          <div style="display:flex;gap:16px;font-size:12px;color:#64748b;padding-top:10px;border-top:1px solid #f1f5f9;">
+            <span>LTV: <strong style="color:#7c3aed;">{{fmtCurr(ltv(p.id))}}</strong></span>
+            <span>Última visita: <strong style="color:#1e293b;">{{ultVisita(p.id)}}</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AGENDA -->
+    <div v-if="aba==='agenda'">
+      <h2 style="font-weight:700;font-size:20px;color:#1e293b;margin:0 0 20px;">Próximos Agendamentos</h2>
+      <div class="card" style="overflow:hidden;">
+        <div v-if="!proximosAgend.length" style="padding:40px;text-align:center;color:#94a3b8;font-size:13px;">Nenhum agendamento próximo</div>
+        <div v-for="ag in proximosAgend" :key="ag.id" style="display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid #f8fafc;">
+          <div style="text-align:center;min-width:46px;"><div style="font-size:22px;font-weight:800;color:#7c3aed;line-height:1;">{{ag.dia}}</div><div style="font-size:10px;color:#94a3b8;text-transform:uppercase;">{{ag.mes}}</div></div>
+          <div style="width:1px;height:36px;background:#e2e8f0;flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:14px;color:#1e293b;">{{ag.pacienteNome}}</div><div style="font-size:12px;color:#64748b;margin-top:2px;">{{ag.hora}} · {{ag.tipo}}{{ag.procedimento?' · '+ag.procedimento:''}}</div></div>
+          <span style="font-size:11px;padding:4px 10px;border-radius:6px;flex-shrink:0;" :style="ag.status==='Confirmado'?'background:#dcfce7;color:#15803d;':ag.status==='Realizado'?'background:#dbeafe;color:#1d4ed8;':'background:#f1f5f9;color:#64748b;'">{{ag.status}}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEADS -->
+    <div v-if="aba==='leads'">
+      <h2 style="font-weight:700;font-size:20px;color:#1e293b;margin:0 0 20px;">Pipeline de Leads</h2>
+      <div style="display:flex;gap:14px;overflow-x:auto;padding-bottom:16px;">
+        <div v-for="col in colunas" :key="col.id" style="min-width:210px;flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+            <div style="width:8px;height:8px;border-radius:50%;" :style="'background:'+col.cor"></div>
+            <span style="font-size:12px;font-weight:600;color:#475569;">{{col.label}}</span>
+            <span style="margin-left:auto;background:#f1f5f9;color:#64748b;font-size:11px;font-weight:600;padding:1px 6px;border-radius:10px;">{{leadsCol(col.id).length}}</span>
+          </div>
+          <div>
+            <div v-for="l in leadsCol(col.id)" :key="l.id" class="card" style="padding:14px;margin-bottom:8px;">
+              <div style="font-weight:600;font-size:13px;color:#1e293b;margin-bottom:3px;">{{l.nome}}</div>
+              <div style="font-size:11px;color:#64748b;margin-bottom:8px;">{{l.origem}} · {{l.telefone}}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px;">
+                <span v-for="i in (l.interesse||[]).slice(0,2)" :key="i" style="font-size:10px;padding:2px 6px;border-radius:4px;background:#f1f5f9;color:#475569;">{{i}}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:10px;color:#94a3b8;">{{fmtData(l.dataEntrada)}}</span>
+                <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;" :style="l.score>=8?'background:#dcfce7;color:#15803d;':l.score>=5?'background:#fef9c3;color:#92400e;':'background:#fee2e2;color:#b91c1c;'">Score {{l.score}}</span>
+              </div>
+            </div>
+            <div v-if="!leadsCol(col.id).length" style="font-size:12px;color:#cbd5e1;text-align:center;padding:20px 0;">Vazio</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ATENDIMENTOS -->
+    <div v-if="aba==='atendimentos'">
+      <h2 style="font-weight:700;font-size:20px;color:#1e293b;margin:0 0 20px;">Últimos Atendimentos</h2>
+      <div class="card" style="overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f8fafc;">
+            <th style="text-align:left;padding:12px 20px;font-size:12px;color:#64748b;font-weight:600;">Data</th>
+            <th style="text-align:left;padding:12px 16px;font-size:12px;color:#64748b;font-weight:600;">Paciente</th>
+            <th style="text-align:left;padding:12px 16px;font-size:12px;color:#64748b;font-weight:600;">Procedimento</th>
+            <th style="text-align:left;padding:12px 16px;font-size:12px;color:#64748b;font-weight:600;">Médico</th>
+            <th style="text-align:right;padding:12px 20px;font-size:12px;color:#64748b;font-weight:600;">Valor</th>
+          </tr></thead>
+          <tbody>
+            <tr v-for="at in atsRecentes" :key="at.id" style="border-top:1px solid #f8fafc;">
+              <td style="padding:12px 20px;font-size:13px;color:#64748b;">{{fmtData(at.data)}}</td>
+              <td style="padding:12px 16px;font-size:13px;font-weight:500;color:#1e293b;">{{nomePac(at.pacienteId)}}</td>
+              <td style="padding:12px 16px;font-size:13px;color:#475569;">{{at.procedimento}}</td>
+              <td style="padding:12px 16px;font-size:13px;color:#475569;">{{at.medico||'—'}}</td>
+              <td style="padding:12px 20px;font-size:13px;font-weight:700;color:#7c3aed;text-align:right;">{{fmtCurr(at.valor)}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const { createApp, ref, computed } = Vue;
+try{dayjs.locale('pt-br');}catch(e){}
+const dados = ${d};
+createApp({
+  setup(){
+    const aba = ref('dashboard');
+    const busca = ref('');
+    const fmtCurr = v => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v||0);
+    const fmtData = d => d?dayjs(d).format('DD/MM/YYYY'):'—';
+    const ltv = id => dados.atendimentos.filter(a=>a.pacienteId===id).reduce((s,a)=>s+(a.valor||0),0);
+    const ultVisita = id => { const ats=dados.atendimentos.filter(a=>a.pacienteId===id).sort((a,b)=>b.data.localeCompare(a.data)); return ats.length?fmtData(ats[0].data):'Nunca'; };
+    const nomePac = id => { const p=dados.pacientes.find(p=>p.id===id); return p?p.nome:'—'; };
+    const kpis = computed(()=>[
+      {label:'Pacientes',valor:dados.pacientes.length},
+      {label:'Leads ativos',valor:dados.leads.filter(l=>!['convertido','perdido'].includes(l.status)).length},
+      {label:'LTV Médio',valor:fmtCurr(dados.pacientes.length?Math.round(dados.atendimentos.reduce((s,a)=>s+(a.valor||0),0)/dados.pacientes.length):0)},
+      {label:'Atendimentos',valor:dados.atendimentos.length},
+    ]);
+    const agendamentosHoje = computed(()=>{const h=dayjs().format('YYYY-MM-DD');return dados.agendamentos.filter(a=>a.data===h).sort((a,b)=>a.hora.localeCompare(b.hora));});
+    const aniversariantes = computed(()=>{const h=dayjs();return dados.pacientes.map(p=>{if(!p.dataNascimento)return null;const dn=dayjs(p.dataNascimento);let aniv=dn.year(h.year());if(aniv.isBefore(h,'day'))aniv=aniv.add(1,'year');const d=aniv.diff(h,'day');return d<=30?{...p,diasAniversario:d}:null;}).filter(Boolean).sort((a,b)=>a.diasAniversario-b.diasAniversario);});
+    const pacientesFiltrados = computed(()=>{if(!busca.value)return dados.pacientes;const q=busca.value.toLowerCase();return dados.pacientes.filter(p=>p.nome.toLowerCase().includes(q)||p.telefone?.includes(q));});
+    const proximosAgend = computed(()=>{const h=dayjs().format('YYYY-MM-DD');return dados.agendamentos.filter(a=>a.data>=h).sort((a,b)=>a.data.localeCompare(b.data)||a.hora.localeCompare(b.hora)).slice(0,30).map(a=>{const dt=dayjs(a.data);return{...a,dia:dt.format('DD'),mes:dt.format('MMM').replace('.','')}; });});
+    const colunas=[{id:'novo',label:'Novo',cor:'#6366f1'},{id:'contato',label:'Em Contato',cor:'#3b82f6'},{id:'consultoria',label:'Consultoria',cor:'#f59e0b'},{id:'proposta',label:'Proposta',cor:'#f97316'},{id:'convertido',label:'Convertido',cor:'#10b981'},{id:'perdido',label:'Perdido',cor:'#ef4444'}];
+    const leadsCol = id => dados.leads.filter(l=>l.status===id);
+    const atsRecentes = computed(()=>[...dados.atendimentos].sort((a,b)=>b.data.localeCompare(a.data)).slice(0,40));
+    return{aba,busca,dados,kpis,agendamentosHoje,aniversariantes,pacientesFiltrados,proximosAgend,colunas,leadsCol,atsRecentes,fmtCurr,fmtData,ltv,ultVisita,nomePac};
+  }
+}).mount('#vapp');
+<\\/script>
+</body></html>`;
+
+      const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'dermcrm-visualizacao-' + dayjs().format('YYYY-MM-DD') + '.html';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast('✅ Arquivo gerado! Envie por e-mail, WhatsApp ou Google Drive.');
+    }
+
     function exportarDados() {
       const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
       const url  = URL.createObjectURL(blob);
@@ -2313,7 +2549,7 @@ const vueApp = createApp({
       financeiro, topPacientesLTV, receitaPorProced,
       funilConversao, taxasConversao, desempenhoPorMedico,
       salvarConfig, adicionarMedico, removerMedico,
-      exportarDados, importarDados,
+      gerarVisualizacao, exportarDados, importarDados,
     };
   }
 });
