@@ -695,6 +695,122 @@
             <canvas id="chartNovos" height="200"></canvas>
           </div>
         </div>
+
+        <!-- Desempenho por Profissional -->
+        <div class="mt-6">
+          <div class="flex items-center gap-3 mb-4">
+            <h3 class="text-base font-bold text-slate-800">👨‍⚕️ Desempenho por Profissional</h3>
+            <span class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">Baseado nos atendimentos registrados</span>
+          </div>
+
+          <!-- Sem médicos cadastrados -->
+          <div v-if="!desempenhoPorMedico.length" class="bg-white rounded-2xl p-8 text-center shadow-sm border border-slate-100">
+            <div class="text-3xl mb-2">👨‍⚕️</div>
+            <p class="text-slate-500 text-sm font-medium">Nenhum médico cadastrado ainda</p>
+            <p class="text-slate-400 text-xs mt-1">Adicione médicos em <strong>Configurações → Médicos da Clínica</strong> e registre atendimentos com o profissional responsável.</p>
+          </div>
+
+          <!-- Cards por médico -->
+          <div v-else class="grid gap-4" :class="desempenhoPorMedico.length === 1 ? 'grid-cols-1' : desempenhoPorMedico.length === 2 ? 'grid-cols-2' : 'grid-cols-3'">
+            <div v-for="med in desempenhoPorMedico" :key="med.nome" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <!-- Header do card -->
+              <div class="px-6 py-4 flex items-center gap-4" style="background: linear-gradient(135deg, #7c3aed11, #db277711);">
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-lg font-bold flex-shrink-0" style="background:#7c3aed;">
+                  {{med.nome.charAt(0).toUpperCase()}}
+                </div>
+                <div>
+                  <div class="font-bold text-slate-800 text-sm">{{med.nome}}</div>
+                  <div class="text-xs text-violet-600 font-medium mt-0.5">{{med.totalAtendimentos}} atendimento{{med.totalAtendimentos !== 1 ? 's' : ''}}</div>
+                </div>
+              </div>
+
+              <!-- KPIs -->
+              <div class="grid grid-cols-3 divide-x divide-slate-100 border-t border-slate-100">
+                <div class="px-4 py-3 text-center">
+                  <div class="text-base font-bold text-slate-800">{{formatCurrency(med.receitaTotal)}}</div>
+                  <div class="text-xs text-slate-400 mt-0.5">Receita Total</div>
+                </div>
+                <div class="px-4 py-3 text-center">
+                  <div class="text-base font-bold text-slate-800">{{formatCurrency(med.ticketMedio)}}</div>
+                  <div class="text-xs text-slate-400 mt-0.5">Ticket Médio</div>
+                </div>
+                <div class="px-4 py-3 text-center">
+                  <div class="text-base font-bold text-slate-800">{{med.totalPacientes}}</div>
+                  <div class="text-xs text-slate-400 mt-0.5">Pacientes</div>
+                </div>
+              </div>
+
+              <!-- Top procedimentos -->
+              <div class="px-6 py-4 border-t border-slate-100">
+                <div class="text-xs font-semibold text-slate-500 mb-3">Procedimentos mais realizados</div>
+                <div v-if="!med.topProcedimentos.length" class="text-xs text-slate-400 italic">Nenhum atendimento registrado</div>
+                <div v-for="(p, i) in med.topProcedimentos" :key="p.nome" class="flex items-center gap-3 mb-2">
+                  <div class="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                    :style="'background:' + ['#7c3aed','#db2777','#059669','#f59e0b'][i]">{{i+1}}</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-xs font-medium text-slate-700 truncate">{{p.nome}}</div>
+                    <div class="text-xs text-slate-400">{{p.qtd}}x · {{formatCurrency(p.receita)}}</div>
+                  </div>
+                  <div class="text-xs font-bold text-slate-600">{{p.pct}}%</div>
+                </div>
+              </div>
+
+              <!-- Evolução mensal simples -->
+              <div class="px-6 pb-4 border-t border-slate-100 pt-3">
+                <div class="text-xs font-semibold text-slate-500 mb-2">Últimos 6 meses</div>
+                <div class="flex items-end gap-1 h-12">
+                  <div v-for="m in med.evolucaoMensal" :key="m.label" class="flex-1 flex flex-col items-center gap-1">
+                    <div class="w-full rounded-t-sm transition-all" style="background:#7c3aed33;"
+                      :style="'height:' + (m.pct * 40 / 100) + 'px; background: #7c3aed' + (m.pct > 0 ? 'cc' : '11')">
+                    </div>
+                    <div class="text-xs text-slate-400" style="font-size:9px;">{{m.label}}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabela comparativa (quando há mais de 1 médico) -->
+          <div v-if="desempenhoPorMedico.length > 1" class="mt-4 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100">
+              <h4 class="font-bold text-slate-800 text-sm">Comparativo entre Profissionais</h4>
+            </div>
+            <table class="w-full">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th class="text-left text-xs font-semibold text-slate-500 px-6 py-3">Profissional</th>
+                  <th class="text-right text-xs font-semibold text-slate-500 px-4 py-3">Atendimentos</th>
+                  <th class="text-right text-xs font-semibold text-slate-500 px-4 py-3">Receita Total</th>
+                  <th class="text-right text-xs font-semibold text-slate-500 px-4 py-3">Ticket Médio</th>
+                  <th class="text-right text-xs font-semibold text-slate-500 px-4 py-3">Pacientes Únicos</th>
+                  <th class="text-right text-xs font-semibold text-slate-500 px-6 py-3">% da Receita</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="med in desempenhoPorMedico" :key="med.nome" class="border-t border-slate-100 hover:bg-slate-50 transition">
+                  <td class="px-6 py-3">
+                    <div class="flex items-center gap-3">
+                      <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background:#7c3aed;">{{med.nome.charAt(0)}}</div>
+                      <span class="text-sm font-medium text-slate-800">{{med.nome}}</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 text-sm text-right font-medium text-slate-700">{{med.totalAtendimentos}}</td>
+                  <td class="px-4 py-3 text-sm text-right font-bold" style="color:#7c3aed;">{{formatCurrency(med.receitaTotal)}}</td>
+                  <td class="px-4 py-3 text-sm text-right text-slate-600">{{formatCurrency(med.ticketMedio)}}</td>
+                  <td class="px-4 py-3 text-sm text-right text-slate-600">{{med.totalPacientes}}</td>
+                  <td class="px-6 py-3 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <div class="w-16 h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full" style="background:#7c3aed;" :style="'width:'+med.pctReceita+'%'"></div>
+                      </div>
+                      <span class="text-xs font-semibold text-slate-600 w-8 text-right">{{med.pctReceita}}%</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </template>
 
       <!-- ==================== CONFIGURAÇÕES ==================== -->
@@ -1999,6 +2115,49 @@ const vueApp = createApp({
     });
 
     // ---- CONFIGURAÇÕES ----
+    // ---- DESEMPENHO POR MÉDICO ----
+    const desempenhoPorMedico = computed(() => {
+      const medicos = (dados.config?.medicos || []).filter(m => m && m.trim());
+      if (!medicos.length) return [];
+
+      const receitaGeral = dados.atendimentos.reduce((s, a) => s + (a.valor || 0), 0);
+
+      return medicos.map(nome => {
+        const ats = dados.atendimentos.filter(a => a.medico === nome);
+        const receitaTotal = ats.reduce((s, a) => s + (a.valor || 0), 0);
+        const totalAtendimentos = ats.length;
+        const ticketMedio = totalAtendimentos ? Math.round(receitaTotal / totalAtendimentos) : 0;
+        const totalPacientes = new Set(ats.map(a => a.pacienteId)).size;
+        const pctReceita = receitaGeral ? Math.round(receitaTotal / receitaGeral * 100) : 0;
+
+        // Top procedimentos
+        const procMap = {};
+        ats.forEach(a => {
+          if (!procMap[a.procedimento]) procMap[a.procedimento] = { nome: a.procedimento, qtd: 0, receita: 0 };
+          procMap[a.procedimento].qtd++;
+          procMap[a.procedimento].receita += (a.valor || 0);
+        });
+        const topProcedimentos = Object.values(procMap)
+          .sort((a, b) => b.qtd - a.qtd)
+          .slice(0, 3)
+          .map(p => ({ ...p, pct: totalAtendimentos ? Math.round(p.qtd / totalAtendimentos * 100) : 0 }));
+
+        // Evolução mensal (últimos 6 meses)
+        const hoje = dayjs();
+        const meses = [];
+        let maxMes = 0;
+        for (let i = 5; i >= 0; i--) {
+          const m = hoje.subtract(i, 'month');
+          const qtd = ats.filter(a => dayjs(a.data).isSame(m, 'month')).length;
+          meses.push({ label: m.format('MMM'), qtd });
+          if (qtd > maxMes) maxMes = qtd;
+        }
+        const evolucaoMensal = meses.map(m => ({ ...m, pct: maxMes ? Math.round(m.qtd / maxMes * 100) : 0 }));
+
+        return { nome, totalAtendimentos, receitaTotal, ticketMedio, totalPacientes, pctReceita, topProcedimentos, evolucaoMensal };
+      }).sort((a, b) => b.receitaTotal - a.receitaTotal);
+    });
+
     const salvarConfig = () => {
       salvar();
       toast('Configurações salvas!');
@@ -2152,7 +2311,7 @@ const vueApp = createApp({
       modalAtend, abrirModalNovoAtend, preencherValorProced, salvarAtendimento,
       aniversariantesProximos, retornosPendentes, retornoStyle, retornoStatusClass, retornoStatusLabel, pacientesInativos,
       financeiro, topPacientesLTV, receitaPorProced,
-      funilConversao, taxasConversao,
+      funilConversao, taxasConversao, desempenhoPorMedico,
       salvarConfig, adicionarMedico, removerMedico,
       exportarDados, importarDados,
     };
