@@ -736,6 +736,33 @@
             </div>
           </div>
 
+          <!-- Médicos da Clínica -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <h3 class="font-bold text-slate-800 mb-1">👨‍⚕️ Médicos da Clínica</h3>
+            <p class="text-xs text-slate-400 mb-4">Adicione até 4 médicos. Eles aparecerão no registro de atendimentos.</p>
+            <div class="space-y-3">
+              <div v-for="(med, idx) in (config.medicos || [])" :key="idx" class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background:#7c3aed;">
+                  {{(med||'?').charAt(0).toUpperCase()}}
+                </div>
+                <input v-model="config.medicos[idx]" type="text" :placeholder="'Médico ' + (idx+1)"
+                  class="flex-1 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:border-violet-400 transition">
+                <button @click="removerMedico(idx)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+              </div>
+              <button v-if="(config.medicos||[]).length < 4" @click="adicionarMedico"
+                class="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-xl border-2 border-dashed border-violet-200 text-violet-600 hover:border-violet-400 hover:bg-violet-50 transition w-full justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Adicionar médico {{(config.medicos||[]).length >= 4 ? '' : '(' + ((config.medicos||[]).length) + '/4)'}}
+              </button>
+              <p v-if="(config.medicos||[]).length >= 4" class="text-xs text-slate-400 text-center">Máximo de 4 médicos atingido</p>
+            </div>
+            <button @click="salvarConfig" class="mt-4 w-full py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition" style="background:#7c3aed;">
+              Salvar Médicos
+            </button>
+          </div>
+
           <!-- Catálogo de Procedimentos -->
           <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
@@ -992,6 +1019,7 @@
               <tr>
                 <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Data</th>
                 <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Procedimento</th>
+                <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Médico</th>
                 <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Valor</th>
                 <th class="text-left text-xs font-semibold text-slate-500 px-4 py-3">Próx. Retorno</th>
               </tr>
@@ -1000,11 +1028,12 @@
               <tr v-for="at in atendimentosDoPaciente(modalPaciente.dados.id)" :key="at.id" class="border-t border-slate-100 hover:bg-slate-50">
                 <td class="px-4 py-3 text-sm text-slate-600">{{formatData(at.data)}}</td>
                 <td class="px-4 py-3 text-sm font-medium text-slate-800">{{at.procedimento}}</td>
+                <td class="px-4 py-3 text-sm text-slate-600">{{at.medico || '—'}}</td>
                 <td class="px-4 py-3 text-sm font-bold" style="color:#7c3aed;">{{formatCurrency(at.valor)}}</td>
                 <td class="px-4 py-3 text-sm text-slate-600">{{at.dataRetorno ? formatData(at.dataRetorno) : '—'}}</td>
               </tr>
               <tr v-if="!atendimentosDoPaciente(modalPaciente.dados.id).length">
-                <td colspan="4" class="px-4 py-8 text-center text-sm text-slate-400">Nenhum atendimento registrado</td>
+                <td colspan="5" class="px-4 py-8 text-center text-sm text-slate-400">Nenhum atendimento registrado</td>
               </tr>
             </tbody>
           </table>
@@ -1218,6 +1247,13 @@
             <option v-for="p in procedimentos" :key="p.id" :value="p.id">{{p.nome}}</option>
           </select>
         </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">👨‍⚕️ Médico Responsável</label>
+          <select v-model="modalAtend.dados.medico" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-400 bg-white transition">
+            <option value="">Selecione o médico</option>
+            <option v-for="med in (config.medicos || [])" :key="med" :value="med">{{med}}</option>
+          </select>
+        </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1.5">Data *</label>
@@ -1347,7 +1383,8 @@ function dadosPadrao() {
     crm: 'CRM 12345-SP',
     telefone: '(11) 3333-4444',
     email: 'contato@dermacrm.com.br',
-    endereco: 'Av. Paulista, 1000 — Sala 501, São Paulo/SP'
+    endereco: 'Av. Paulista, 1000 — Sala 501, São Paulo/SP',
+    medicos: ['Dra. Renata Silva']
   };
 
   return { procedimentos, leads, pacientes, atendimentos, agendamentos, config };
@@ -1374,7 +1411,7 @@ const vueApp = createApp({
             agendamentos:  Array.isArray(p.agendamentos)  ? p.agendamentos  : def.agendamentos,
             procedimentos: Array.isArray(p.procedimentos) ? p.procedimentos : def.procedimentos,
             config: (p.config && typeof p.config === 'object')
-              ? { ...def.config, ...p.config }
+              ? { ...def.config, ...p.config, medicos: Array.isArray(p.config.medicos) ? p.config.medicos : def.config.medicos }
               : def.config,
           };
         }
@@ -1967,6 +2004,17 @@ const vueApp = createApp({
       toast('Configurações salvas!');
     };
 
+    const adicionarMedico = () => {
+      if (!dados.config.medicos) dados.config.medicos = [];
+      if (dados.config.medicos.length < 4) dados.config.medicos.push('');
+    };
+
+    const removerMedico = (idx) => {
+      dados.config.medicos.splice(idx, 1);
+      salvar();
+      toast('Médico removido.');
+    };
+
     // ============ GRÁFICOS ============
     let charts = {};
 
@@ -2105,7 +2153,7 @@ const vueApp = createApp({
       aniversariantesProximos, retornosPendentes, retornoStyle, retornoStatusClass, retornoStatusLabel, pacientesInativos,
       financeiro, topPacientesLTV, receitaPorProced,
       funilConversao, taxasConversao,
-      salvarConfig,
+      salvarConfig, adicionarMedico, removerMedico,
       exportarDados, importarDados,
     };
   }
